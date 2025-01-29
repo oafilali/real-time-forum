@@ -13,6 +13,8 @@ func main() {
 
 	// Serve static files (CSS)
 	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("./html"))))
+	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("./images"))))
+	fmt.Println("Serving images from ./images/")
 
 	// Serve the home page
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +28,7 @@ func main() {
 	http.HandleFunc("/comment", commentHandler)
 	http.HandleFunc("/like", likeHandler)
 	http.HandleFunc("/filter", filterHandler)
-	http.HandleFunc("/posts", postsHandler) // New route to display posts
+	http.HandleFunc("/posts", postsHandler)   // New route to display posts
 	http.HandleFunc("/logout", logoutHandler) // New route to handle logout
 
 	// Start the server
