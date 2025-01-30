@@ -32,6 +32,6 @@ func main() {
 	http.HandleFunc("/logout", logoutHandler) // New route to handle logout
 
 	// Start the server
-	fmt.Println("Server started at :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Server started at :8088")
+	log.Fatal(http.ListenAndServe(":8088", nil))
 }

@@ -60,7 +60,8 @@ func createTables() {
 			user_id INTEGER,
 			type TEXT CHECK(type IN ('like', 'dislike')),
 			FOREIGN KEY(post_id) REFERENCES posts(id),
-			FOREIGN KEY(user_id) REFERENCES users(id)
+			FOREIGN KEY(user_id) REFERENCES users(id),
+			UNIQUE (user_id, post_id)
 		);`,
 	}
 

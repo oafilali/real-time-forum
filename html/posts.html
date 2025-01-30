@@ -8,7 +8,7 @@
     <div class="container">
         <h1>Posts</h1>
         {{range .}}
-        <div class="post">
+        <div class="post" id="{{.ID}}">
             <h2>{{.Title}}</h2>
             <p>{{.Content}}</p>
             <small>Category: {{.Category}}</small>

@@ -75,7 +75,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			Expires: time.Now().Add(24 * time.Hour), // Session expires in 24 hours
 		})
 
-		fmt.Fprintf(w, "Login successful")
+		http.Redirect(w, r, "/posts", http.StatusFound)
 	} else {
 		http.ServeFile(w, r, "./html/login.html")
 	}
@@ -281,16 +281,41 @@ func likeHandler(w http.ResponseWriter, r *http.Request) {
 
 		postID := r.FormValue("post_id")
 		reactionType := r.FormValue("type")
+		var currentReact string
 
-		// Insert the reaction into the database
-		_, err = db.Exec("INSERT INTO reactions (post_id, user_id, type) VALUES (?, ?, ?)", postID, userID, reactionType)
-		if err != nil {
-			http.Error(w, "Failed to react to post", http.StatusInternalServerError)
-			return
+		res, _ := db.Query(`SELECT type FROM reactions WHERE user_id = ? AND post_id = ?;`, userID, postID)
+		if !res.Next() {
+			res.Close()
+			fmt.Printf("Adding %s to post %v from user %v\n", reactionType, postID, userID)
+			// Insert the reaction into the database
+			_, err = db.Exec("INSERT INTO reactions (post_id, user_id, type) VALUES (?, ?, ?)", postID, userID, reactionType)
+			if err != nil {
+				http.Error(w, "Failed to react to post", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			err := res.Scan(&currentReact)
+			res.Close()
+			if err != nil {
+				http.Error(w, "Failed to fetch reaction", http.StatusInternalServerError)
+				return
+			}
+			if (reactionType == "like" && currentReact == "dislike") || (reactionType == "dislike" && currentReact == "like") {
+				_, err = db.Exec(`DELETE FROM reactions WHERE user_id = ? AND post_id = ?;`, userID, postID)
+
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				_, err = db.Exec("INSERT INTO reactions (post_id, user_id, type) VALUES (?, ?, ?)", postID, userID, reactionType)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
 		}
-
 		// Redirect back to the posts page
-		http.Redirect(w, r, "/posts", http.StatusSeeOther)
+		http.Redirect(w, r, "/posts#"+postID, http.StatusSeeOther)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
@@ -331,19 +356,19 @@ func filterHandler(w http.ResponseWriter, r *http.Request) {
 		defer rows.Close()
 
 		var posts []struct {
-			ID      int
-			UserID  int
-			Title   string
-			Content string
+			ID       int
+			UserID   int
+			Title    string
+			Content  string
 			Category string
 		}
 
 		for rows.Next() {
 			var post struct {
-				ID      int
-				UserID  int
-				Title   string
-				Content string
+				ID       int
+				UserID   int
+				Title    string
+				Content  string
 				Category string
 			}
 			err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Content, &post.Category)
