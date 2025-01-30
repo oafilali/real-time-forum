@@ -20,6 +20,9 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./html/home.html")
 	})
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "html/favicon.ico")
+	})
 
 	// Register HTTP handlers
 	http.HandleFunc("/register", registerHandler)
