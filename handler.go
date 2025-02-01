@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 	"log"
@@ -75,7 +76,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			Expires: time.Now().Add(24 * time.Hour), // Session expires in 24 hours
 		})
 
-		fmt.Fprintf(w, "Login successful")
+		http.Redirect(w, r, "/posts", http.StatusFound)
 	} else {
 		http.ServeFile(w, r, "./html/login.html")
 	}
@@ -134,9 +135,11 @@ func postsHandler(w http.ResponseWriter, r *http.Request) {
 		Likes    int
 		Dislikes int
 		Comments []struct {
-			ID      int
-			UserID  int
-			Content string
+			ID       int
+			UserID   int
+			Content  string
+			Likes    int
+			Dislikes int
 		}
 	}
 
@@ -151,9 +154,11 @@ func postsHandler(w http.ResponseWriter, r *http.Request) {
 			Likes    int
 			Dislikes int
 			Comments []struct {
-				ID      int
-				UserID  int
-				Content string
+				ID       int
+				UserID   int
+				Content  string
+				Likes    int
+				Dislikes int
 			}
 		}
 
@@ -193,20 +198,49 @@ func postsHandler(w http.ResponseWriter, r *http.Request) {
 		// Iterate over comments for this post
 		for commentRows.Next() {
 			var comment struct {
-				ID      int
-				UserID  int
-				Content string
+				ID       int
+				UserID   int
+				Content  string
+				Likes    int
+				Dislikes int
 			}
 			err := commentRows.Scan(&comment.ID, &comment.UserID, &comment.Content)
 			if err != nil {
 				http.Error(w, "Failed to scan comment: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
+
+			// Fetch likes and dislikes for comments
+			err = db.QueryRow("SELECT COUNT(*) FROM reactions WHERE comment_id = ? AND type = 'like'", comment.ID).Scan(&comment.Likes)
+			if err != nil {
+				http.Error(w, "Failed to fetch comment likes: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			err = db.QueryRow("SELECT COUNT(*) FROM reactions WHERE comment_id = ? AND type = 'dislike'", comment.ID).Scan(&comment.Dislikes)
+			if err != nil {
+				http.Error(w, "Failed to fetch comment dislikes: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
 			post.Comments = append(post.Comments, comment)
 		}
 
 		// Add the post (with likes, dislikes, and comments) to the posts slice
 		posts = append(posts, post)
+	}
+
+	// Log the number of posts and check for issues
+	log.Printf("Fetched %d posts", len(posts))
+	if len(posts) == 0 {
+		log.Println("No posts found in the database.")
+	}
+
+	// Pass UserID to the template if logged in
+	sessionCookie, err := r.Cookie("session_id")
+	userID := 0
+	if err == nil {
+		// Retrieve the user ID from the session if available
+		userID = sessions[sessionCookie.Value]
 	}
 
 	// Parse the template
@@ -216,8 +250,26 @@ func postsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Execute the template with the posts data
-	err = tmpl.Execute(w, posts)
+	// Execute the template with posts data and UserID
+	err = tmpl.Execute(w, struct {
+		Posts []struct {
+			ID       int
+			UserID   int
+			Title    string
+			Content  string
+			Category string
+			Likes    int
+			Dislikes int
+			Comments []struct {
+				ID       int
+				UserID   int
+				Content  string
+				Likes    int
+				Dislikes int
+			}
+		}
+		UserID int
+	}{posts, userID})
 	if err != nil {
 		http.Error(w, "Failed to execute template", http.StatusInternalServerError)
 		return
@@ -279,18 +331,87 @@ func likeHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Get the post_id or comment_id from the form
 		postID := r.FormValue("post_id")
+		commentID := r.FormValue("comment_id")
 		reactionType := r.FormValue("type")
 
-		// Insert the reaction into the database
-		_, err = db.Exec("INSERT INTO reactions (post_id, user_id, type) VALUES (?, ?, ?)", postID, userID, reactionType)
-		if err != nil {
-			http.Error(w, "Failed to react to post", http.StatusInternalServerError)
+		var currentReact string
+		var targetID string
+		var isComment bool
+
+		// Determine if it's a post or a comment
+		if postID != "" {
+			targetID = postID
+			isComment = false
+		} else if commentID != "" {
+			targetID = commentID
+			isComment = true
+		} else {
+			http.Error(w, "Invalid ID provided", http.StatusBadRequest)
 			return
 		}
 
-		// Redirect back to the posts page
-		http.Redirect(w, r, "/posts", http.StatusSeeOther)
+		// Define the appropriate table and ID column based on whether it's a post or a comment
+		var tableName, idColumn string
+		if isComment {
+			tableName = "reactions"
+			idColumn = "comment_id"
+		} else {
+			tableName = "reactions"
+			idColumn = "post_id"
+		}
+
+		// Check if the user has already reacted to the post/comment
+		var res *sql.Rows
+		if isComment {
+			res, _ = db.Query(`SELECT type FROM reactions WHERE user_id = ? AND comment_id = ?;`, userID, targetID)
+		} else {
+			res, _ = db.Query(`SELECT type FROM reactions WHERE user_id = ? AND post_id = ?;`, userID, targetID)
+		}
+
+		if !res.Next() {
+			// No previous reaction found, so insert the new reaction
+			res.Close()
+			_, err := db.Exec(fmt.Sprintf("INSERT INTO %s (%s, user_id, type) VALUES (?, ?, ?)", tableName, idColumn), targetID, userID, reactionType)
+			if err != nil {
+				http.Error(w, "Failed to react", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			// A previous reaction exists, so toggle it if needed
+			err := res.Scan(&currentReact)
+			res.Close()
+			if err != nil {
+				http.Error(w, "Failed to fetch reaction", http.StatusInternalServerError)
+				return
+			}
+			if (reactionType == "like" && currentReact == "dislike") || (reactionType == "dislike" && currentReact == "like") {
+				// Remove the existing reaction
+				if isComment {
+					_, err = db.Exec(`DELETE FROM reactions WHERE user_id = ? AND comment_id = ?;`, userID, targetID)
+				} else {
+					_, err = db.Exec(`DELETE FROM reactions WHERE user_id = ? AND post_id = ?;`, userID, targetID)
+				}
+				if err != nil {
+					http.Error(w, "Failed to remove existing reaction", http.StatusInternalServerError)
+					return
+				}
+				// Insert the new reaction
+				_, err = db.Exec(fmt.Sprintf("INSERT INTO %s (%s, user_id, type) VALUES (?, ?, ?)", tableName, idColumn), targetID, userID, reactionType)
+				if err != nil {
+					http.Error(w, "Failed to insert new reaction", http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+
+		// Redirect back to the post or comment page
+		if isComment {
+			http.Redirect(w, r, "/posts#"+postID+"#comment-"+commentID, http.StatusSeeOther)
+		} else {
+			http.Redirect(w, r, "/posts#"+postID, http.StatusSeeOther)
+		}
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
@@ -331,27 +452,120 @@ func filterHandler(w http.ResponseWriter, r *http.Request) {
 		defer rows.Close()
 
 		var posts []struct {
-			ID      int
-			UserID  int
-			Title   string
-			Content string
+			ID       int
+			UserID   int
+			Title    string
+			Content  string
 			Category string
+			Likes    int
+			Dislikes int
+			Comments []struct {
+				ID       int
+				UserID   int
+				Content  string
+				Likes    int
+				Dislikes int
+			}
 		}
 
+		// Iterate over each post
 		for rows.Next() {
 			var post struct {
-				ID      int
-				UserID  int
-				Title   string
-				Content string
+				ID       int
+				UserID   int
+				Title    string
+				Content  string
 				Category string
+				Likes    int
+				Dislikes int
+				Comments []struct {
+					ID       int
+					UserID   int
+					Content  string
+					Likes    int
+					Dislikes int
+				}
 			}
+
+			// Scan the post data
 			err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Content, &post.Category)
 			if err != nil {
-				http.Error(w, "Failed to scan post", http.StatusInternalServerError)
+				http.Error(w, "Failed to scan post: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
+
+			// Fetch the number of likes for this post
+			var likes int
+			err = db.QueryRow("SELECT COUNT(*) FROM reactions WHERE post_id = ? AND type = 'like'", post.ID).Scan(&likes)
+			if err != nil {
+				http.Error(w, "Failed to fetch likes: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			post.Likes = likes
+
+			// Fetch the number of dislikes for this post
+			var dislikes int
+			err = db.QueryRow("SELECT COUNT(*) FROM reactions WHERE post_id = ? AND type = 'dislike'", post.ID).Scan(&dislikes)
+			if err != nil {
+				http.Error(w, "Failed to fetch dislikes: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			post.Dislikes = dislikes
+
+			// Fetch comments for this post
+			commentRows, err := db.Query("SELECT id, user_id, content FROM comments WHERE post_id = ?", post.ID)
+			if err != nil {
+				http.Error(w, "Failed to fetch comments: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer commentRows.Close()
+
+			// Iterate over comments for this post
+			for commentRows.Next() {
+				var comment struct {
+					ID       int
+					UserID   int
+					Content  string
+					Likes    int
+					Dislikes int
+				}
+				err := commentRows.Scan(&comment.ID, &comment.UserID, &comment.Content)
+				if err != nil {
+					http.Error(w, "Failed to scan comment: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				// Fetch likes and dislikes for comments
+				err = db.QueryRow("SELECT COUNT(*) FROM reactions WHERE comment_id = ? AND type = 'like'", comment.ID).Scan(&comment.Likes)
+				if err != nil {
+					http.Error(w, "Failed to fetch comment likes: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+				err = db.QueryRow("SELECT COUNT(*) FROM reactions WHERE comment_id = ? AND type = 'dislike'", comment.ID).Scan(&comment.Dislikes)
+				if err != nil {
+					http.Error(w, "Failed to fetch comment dislikes: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				post.Comments = append(post.Comments, comment)
+			}
+
+			// Add the post (with likes, dislikes, and comments) to the posts slice
 			posts = append(posts, post)
+		}
+
+		// Log the number of posts and check for issues
+		log.Printf("Fetched %d posts", len(posts))
+		if len(posts) == 0 {
+			log.Println("No posts found in the database.")
+		}
+
+		// Pass UserID to the template if logged in
+		sessionCookie, err := r.Cookie("session_id")
+		userID := 0
+		if err == nil {
+			// Retrieve the user ID from the session if available
+			userID = sessions[sessionCookie.Value]
 		}
 
 		// Parse the template
@@ -361,13 +575,29 @@ func filterHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Execute the template with the posts data
-		err = tmpl.Execute(w, posts)
+		// Execute the template with posts data and UserID
+		err = tmpl.Execute(w, struct {
+			Posts []struct {
+				ID       int
+				UserID   int
+				Title    string
+				Content  string
+				Category string
+				Likes    int
+				Dislikes int
+				Comments []struct {
+					ID       int
+					UserID   int
+					Content  string
+					Likes    int
+					Dislikes int
+				}
+			}
+			UserID int
+		}{posts, userID})
 		if err != nil {
 			http.Error(w, "Failed to execute template", http.StatusInternalServerError)
 			return
 		}
-	} else {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
 }
