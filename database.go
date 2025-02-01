@@ -58,6 +58,7 @@ func createTables() {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			post_id INTEGER,
 			user_id INTEGER,
+	        comment_id INTEGER,  -- New column to store comment reactions
 			type TEXT CHECK(type IN ('like', 'dislike')),
 			FOREIGN KEY(post_id) REFERENCES posts(id),
 			FOREIGN KEY(user_id) REFERENCES users(id),
