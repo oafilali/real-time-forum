@@ -15,23 +15,26 @@ func main() {
 	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("./html"))))
 	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("./images"))))
 	fmt.Println("Serving images from ./images/")
-
+/*
 	// Serve the home page
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./html/home.html")
 	})
+
+	*/
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "html/favicon.ico")
 	})
 
 	// Register HTTP handlers
+	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/register", registerHandler)
 	http.HandleFunc("/login", loginHandler)
-	http.HandleFunc("/post", postHandler)
+	http.HandleFunc("/createPost", createPostHandler)
 	http.HandleFunc("/comment", commentHandler)
 	http.HandleFunc("/like", likeHandler)
 	http.HandleFunc("/filter", filterHandler)
-	http.HandleFunc("/posts", postsHandler)   // New route to display posts
+	http.HandleFunc("/post", postHandler)   // New route to display posts
 	http.HandleFunc("/logout", logoutHandler) // New route to handle logout
 
 	// Start the server

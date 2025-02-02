@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+    <link rel="stylesheet" href="/html/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Åland Forum</h1> <!-- The name of your website -->
+    </header>
+
+    <div class="container">
+        <h1>Category: {{.Category}}</h1>
+        <h2>Posts</h2>
+
+        {{if .Posts}}
+            {{range .Posts}}
+            <div id="{{.ID}}">
+                <p><a href="/posts?id={{.ID}}">{{.Title}}</a></p>
+            </div>
+            {{end}}
+        {{else}}
+            <p>No posts yet.</p>
+        {{end}}
+    </div>
+</body>
+</html>

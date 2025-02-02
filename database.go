@@ -66,6 +66,7 @@ func createTables() {
 		);`,
 	}
 
+	
 	for _, table := range tables {
 		_, err := db.Exec(table)
 		if err != nil {
