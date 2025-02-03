@@ -149,7 +149,7 @@ func fetchReactionsNumber(itemID int, isComment bool) (likes, dislikes int, err 
 	return
 }
 
-func fetchPosts() ([]homePagePosts, error) {
+func fetchPosts() ([]homePageData, error) {
 	postRows, err := db.Query(`SELECT 
     	p.id, 
     	p.title, 
@@ -163,11 +163,11 @@ func fetchPosts() ([]homePagePosts, error) {
 	}
 	defer postRows.Close()
 
-	var allPosts []homePagePosts
+	var allPosts []homePageData
 
 	// Iterate over each post
 	for postRows.Next() {
-		var post homePagePosts
+		var post homePageData
 
 		// Scan the post data
 		err := postRows.Scan(&post.ID, &post.Title, &post.Likes, &post.Dislikes)

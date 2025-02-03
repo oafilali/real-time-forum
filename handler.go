@@ -29,12 +29,12 @@ type comment struct {
 	Dislikes int
 }
 
-type ViewData struct {
+type postPageData struct {
     Post   Post
     SessionID int
 }
 
-type homePagePosts struct {
+type homePageData struct {
 	ID    int
 	Title string
 	Likes    int
@@ -173,7 +173,7 @@ func viewPostHandler(w http.ResponseWriter, r *http.Request) {
         sessionID = 0 // If there's an error, set sessionID to 0
     }
 
-    viewData := ViewData{
+    postPageData := postPageData{
         Post:      post,
         SessionID: sessionID, // Add the user ID
     }
@@ -185,7 +185,7 @@ func viewPostHandler(w http.ResponseWriter, r *http.Request) {
     }
 
     // Execute the template, passing in the post data
-    err = tmpl.Execute(w, viewData)
+    err = tmpl.Execute(w, postPageData)
     if errorCheckHandlers(w, "Failed to render the template", err, http.StatusInternalServerError) {
         return
     }
