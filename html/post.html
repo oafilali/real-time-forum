@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{.Post.Title}}</title>
+    <link rel="stylesheet" href="/html/styles.css">
+</head>
+<body>
+    <div class="container">
+  
+        <div class="post" id="post-{{.Post.ID}}">
+            <h2>Category: {{.Post.Category}}</h2>
+            <h3>{{.Post.Title}}</h3>
+            <p>
+            <small>{{.Post.Username}}:</small>
+            <p>{{.Post.Content}}
+
+            <!-- Like/Dislike Buttons for Post -->
+            <form action="/like" method="POST" style="display:inline;">
+                <input type="hidden" name="post_id" value="{{.Post.ID}}">
+                <button type="submit" name="type" value="like">👍 ({{.Post.Likes}})</button>
+            </form>
+            <form action="/like" method="POST" style="display:inline;">
+                <input type="hidden" name="post_id" value="{{.Post.ID}}">
+                <button type="submit" name="type" value="dislike">👎 ({{.Post.Dislikes}})</button>
+            </form>
+        </p>
+            <!-- Display Comments -->
+            <div class="comments"></div>
+                <h3>Comments</h3>
+                {{range .Post.Comments}}
+                <div class="comment">
+                    <small>{{.Username}}:</small>
+                    <p>
+                    <p>{{.Content}}</p>
+
+                    <!-- Like/Dislike Buttons for Comment -->
+                    <form action="/like" method="POST" style="display:inline;">
+                        <input type="hidden" name="comment_id" value="{{.ID}}">
+                        <input type="hidden" name="post_id" value="{{$.Post.ID}}">
+                        <button type="submit" name="type" value="like">👍 ({{.Likes}})</button>
+                    </form>
+                    <form action="/like" method="POST" style="display:inline;">
+                        <input type="hidden" name="comment_id" value="{{.ID}}">
+                        <input type="hidden" name="post_id" value="{{$.Post.ID}}">
+                        <button type="submit" name="type" value="dislike">👎 ({{.Dislikes}})</button>
+                    </form>
+                </div>
+                {{else}}
+                <p>No comments yet.</p>
+                {{end}}
+            </div>
+
+            <p>SessionID: {{.SessionID}}</p> <!-- Debug: Display the UserID value -->
+
+            <!-- Comment Form (visible only if the user is logged in) -->
+            {{if .SessionID}} <!-- Check if userID is not 0 (logged in) -->
+            <form action="/comment" method="POST">
+                <input type="hidden" name="post_id" value="{{.Post.ID}}">
+                <textarea name="content" placeholder="Add a comment..." required></textarea>
+                <button type="submit">Add Comment</button>
+            </form>
+            {{else}}
+            <p>You must be logged in to add a comment.
+                <p><a href="/login">Login</a></p>
+            </p>
+            {{end}}
+        </div>
+        <p><a href="/">Back to Home</a></p>
+    </div>
+</body>
+</html>

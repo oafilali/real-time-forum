@@ -53,7 +53,7 @@ header h1 {
     display: block;
     padding: 10px;
     margin: 5px 0;
-    background: #55aaff;
+    background: #286aa4;
     color: white;
     text-decoration: none;
     border-radius: 5px;
@@ -61,7 +61,7 @@ header h1 {
 }
 
 .container p a:hover {
-    background: #0056b3;
+    background: #1e5381;
 }
 
 /* Filter Section */
@@ -85,8 +85,9 @@ h2 {
 }
 
 .post h2 {
-    font-size: 20px;
+    font-size: 15px;
     margin-bottom: 10px;
+    color: rgb(19, 109, 169)
 }
 
 .post p {
@@ -103,13 +104,13 @@ h2 {
 }
 
 .post button[name="type"][value="like"] {
-    background-color: #28a745;
-    color: #fff;
+    background-color: #ffffff;
+    color: #000000;
 }
 
 .post button[name="type"][value="dislike"] {
-    background-color: #dc3545;
-    color: #fff;
+    background-color: #ffffff;
+    color: #000000;
 }
 
 .post button:hover {

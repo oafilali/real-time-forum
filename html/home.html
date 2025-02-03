@@ -11,20 +11,33 @@
         <h1>Åland Forum</h1> <!-- The name of your website -->
     </header>
 
-    <!-- Main container for the page content -->
     <div class="container">
-        <h1>Welcome to the Forum!</h1>
-        <p><a href="/register">Register</a></p>
-        <p><a href="/login">Login</a></p>
-        <p><a href="/post">Create Post</a></p>
-        <p><a href="/posts">View Posts</a></p>
-        <p><a href="/logout">Logout</a></p>
+        <h2>All posts:</h2>
+        {{if .}}
+        {{range .}}
+        <div  id="{{.ID}}">
+            <p><a href="/post?id={{.ID}}">{{.Title}}</a></p>
+            </div>
+            {{end}}
+            {{else}}
+            <p>No posts yet.</p>
+        {{end}}
 
         <!-- Filtering Options -->
-        <h2>Filter Posts</h2>
+        <h2>Categories:</h2>
         <p><a href="/filter?category=General">General</a></p>
         <p><a href="/filter?category=Tech">Tech</a></p>
-        <p><a href="/filter?category=News">News</a></p>
+        <p><a href="/filter?category=Viking line">Viking line</a></p>
+    </div>
+
+    <!-- Main container for the page content -->
+    <div class="container">
+        <h2>Welcome to the Forum!</h2>
+        <p><a href="/register">Register</a></p>
+        <p><a href="/login">Login</a></p>
+        <p><a href="/createPost">Create Post</a></p>
+        <p><a href="/logout">Logout</a></p>
+
     </div>
 </body>
 </html>
