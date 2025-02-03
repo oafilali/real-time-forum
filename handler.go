@@ -34,7 +34,7 @@ type ViewData struct {
     SessionID int
 }
 
-type posts struct {
+type homePagePosts struct {
 	ID    int
 	Title string
 	Likes    int
