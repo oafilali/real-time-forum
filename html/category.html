@@ -6,12 +6,28 @@
 </head>
 <body>
     <header>
-        <h1>Åland Forum</h1> <!-- The name of your website -->
+        <h1>Åland Forum</h1>
+        <div class="auth-box">
+            <a href="/login">Login</a>
+            <a href="/createPost">Create Post</a>
+            <a href="/register">Register</a>
+            <a href="/logout">Logout</a>
+        </div>
     </header>
 
-    <div class="container">
-        <h1>Category: {{.Category}}</h1>
-        <h2>Posts</h2>
+
+    <div class="main-container">
+        <!-- Categories Section (Left) -->
+        <div class="categories">
+            <h2>Categories:</h2>
+            <p><a href="/filter?category=General">General</a></p>
+            <p><a href="/filter?category=Tech">Tech</a></p>
+            <p><a href="/filter?category=Viking line">Viking line</a></p>
+        </div>
+    
+        <!-- Posts Feed (Center) -->
+        <div class="posts-feed">
+            <h1>{{.Category}}</h1>
 
         {{if .Posts}}
             {{range .Posts}}
@@ -22,6 +38,9 @@
         {{else}}
             <p>No posts yet.</p>
         {{end}}
+        </div>
     </div>
 </body>
 </html>
+
+

@@ -5,48 +5,46 @@
     <link rel="stylesheet" href="/html/styles.css">
 </head>
 <body>
-    <!-- Header section with background image -->
     <header>
-        <!-- The background image will be applied here -->
-        <h1>Åland Forum</h1> <!-- The name of your website -->
+        <h1>Åland Forum</h1>
+        <div class="auth-box">
+            <a href="/login">Login</a>
+            <a href="/createPost">Create Post</a>
+            <a href="/register">Register</a>
+            <a href="/logout">Logout</a>
+        </div>
     </header>
-
-    <div class="container">
-        <h2>All posts:</h2>
-        {{if .}}
-        {{range .}}
-        <div  id="{{.ID}}">
-            <p><a href="/post?id={{.ID}}">{{.Title}}</a></p>
-            <!-- Like/Dislike Buttons for Post -->
-            <form action="/like" method="POST" style="display:inline;">
-                <input type="hidden" name="post_id" value="{{.ID}}">
-                <button type="submit" name="type" value="like">👍 ({{.Likes}})</button>
-            </form>
-            <form action="/like" method="POST" style="display:inline;">
-                <input type="hidden" name="post_id" value="{{.ID}}">
-                <button type="submit" name="type" value="dislike">👎 ({{.Dislikes}})</button>
-            </form>
+    <div class="main-container">
+        <!-- Categories Section (Left) -->
+        <div class="categories">
+            <h2>Categories:</h2>
+            <p><a href="/filter?category=General">General</a></p>
+            <p><a href="/filter?category=Tech">Tech</a></p>
+            <p><a href="/filter?category=Viking line">Viking line</a></p>
+        </div>
+    
+        <!-- Posts Feed (Center) -->
+        <div class="posts-feed">
+            <h2>All posts:</h2>
+            {{if .}}
+            {{range .}}
+            <div id="{{.ID}}">
+                <p><a href="/post?id={{.ID}}">{{.Title}}</a></p>
+                <!-- Like/Dislike Buttons -->
+                <form action="/like" method="POST" style="display:inline;">
+                    <input type="hidden" name="post_id" value="{{.ID}}">
+                    <button type="submit" name="type" value="like">👍 ({{.Likes}})</button>
+                </form>
+                <form action="/like" method="POST" style="display:inline;">
+                    <input type="hidden" name="post_id" value="{{.ID}}">
+                    <button type="submit" name="type" value="dislike">👎 ({{.Dislikes}})</button>
+                </form>
             </div>
             {{end}}
             {{else}}
             <p>No posts yet.</p>
-        {{end}}
-
-        <!-- Filtering Options -->
-        <h2>Categories:</h2>
-        <p><a href="/filter?category=General">General</a></p>
-        <p><a href="/filter?category=Tech">Tech</a></p>
-        <p><a href="/filter?category=Viking line">Viking line</a></p>
-    </div>
-
-    <!-- Main container for the page content -->
-    <div class="container">
-        <h2>Welcome to the Forum!</h2>
-        <p><a href="/register">Register</a></p>
-        <p><a href="/login">Login</a></p>
-        <p><a href="/createPost">Create Post</a></p>
-        <p><a href="/logout">Logout</a></p>
-
+            {{end}}
+        </div>
     </div>
 </body>
 </html>

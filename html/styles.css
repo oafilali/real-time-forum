@@ -1,18 +1,11 @@
-/* Reset default margins and padding */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-/* General Styles */
+/* General Styling */
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
 }
 
 /* Responsive Header */
@@ -37,145 +30,226 @@ header h1 {
     padding: 10px;
 }
 
-/* Main Container */
-.container {
-    width: 90%; /* Makes it responsive */
-    max-width: 600px; /* Restricts max width for better readability */
-    margin: 0 auto; /* Centers it on the page */
-    padding: 20px;
-    background-color: white; /* Optional: Makes content stand out */
-    border-radius: 8px; /* Optional: Soft rounded edges */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
+/* Auth Links Box */
+.auth-box {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background-color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    gap: 10px;
 }
 
-/* Navigation Links */
-.container p a {
-    display: block;
-    padding: 10px;
-    margin: 5px 0;
-    background: #286aa4;
-    color: white;
+.auth-box a {
+    color: #0077b6;
     text-decoration: none;
+    font-weight: bold;
+}
+
+.auth-box a:hover {
+    text-decoration: underline;
+}
+
+/* Main Layout */
+.main-container {
+    display: flex;
+    width: 80%;
+    margin-top: 20px;
+}
+
+/* Categories on the Left */
+/* Categories Section */
+.categories {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    width: 200px; /* Adjust as needed */
+}
+
+/* Category Links */
+.categories a {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #0077b6;
+    font-weight: bold;
+    border-radius: 5px;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+/* Hover Effect */
+.categories a:hover {
+    background-color: rgba(0, 119, 182, 0.1); /* Light highlight */
+    box-shadow: 0px 0px 5px rgba(0, 119, 182, 0.3);
+}
+.categories h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.categories p {
+    margin: 5px 0;
+}
+
+/* Posts Feed (Center) */
+.posts-feed {
+    flex-grow: 1;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+}
+
+/* Post Styling */
+.posts-feed div {
+    background-color: #e3f2fd;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+/* Remove default button styles */
+button[name="type"] {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px; /* Adjust size if needed */
+    padding: 5px;
+    color: inherit; /* Keeps the text color consistent */
+}
+
+/* Optional: Add hover effect */
+button[name="type"]:hover {
+    opacity: 0.7;
+}
+
+/* Centered form container */
+.form-container {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Label styling */
+.form-container label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* Style the input fields */
+.form-container input[type="text"],
+.form-container textarea,
+.form-container select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+/* Increase the content box height */
+.form-container textarea {
+    height: 200px; /* Big content box */
+    resize: vertical;
+}
+
+/* Style the category dropdown */
+.form-container select {
+    background: white;
+    cursor: pointer;
+}
+
+/* Style the submit button */
+.form-container button {
+    width: 100%;
+    padding: 10px;
+    background: #008CBA;
+    color: white;
+    border: none;
     border-radius: 5px;
     font-size: 18px;
+    cursor: pointer;
+    transition: background 0.3s ease;
 }
 
-.container p a:hover {
-    background: #1e5381;
+.form-container button:hover {
+    background: #005f7f;
 }
 
-/* Filter Section */
-h2 {
-    margin-top: 20px;
-    font-size: 22px;
-}
-
-.container p {
-    margin-bottom: 10px;
-}
-
-/* Responsive Posts */
-.post {
-    background-color: #f9f9f9;
-    padding: 15px;
+.comment {
+    background-color: #f9f9f9; /* Light background for contrast */
+    border-left: 5px solid #4CAF50; /* Green border on the left to highlight */
+    padding: 15px 10px 15px 30px; /* Increased left padding for more indentation */
     margin-bottom: 15px;
-    border-radius: 8px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-    text-align: left;
+    font-family: Arial, sans-serif;
+    width: 100%; /* Ensure it takes up the full width of its container */
+    box-sizing: border-box; /* Prevents overflow by including padding in the width calculation */
 }
 
-.post h2 {
-    font-size: 15px;
-    margin-bottom: 10px;
-    color: rgb(19, 109, 169)
-}
-
-.post p {
+.comment small {
+    font-weight: bold;
     color: #555;
 }
 
-/* Like and Dislike Buttons */
-.post button {
-    padding: 5px 10px;
-    margin-right: 5px;
+.comment p {
+    color: #333;
+    line-height: 1.5;
+}
+
+.comment form {
+    margin-top: 10px;
+}
+
+.comment:hover {
+    background-color: #f1f1f1; /* Slightly darker background on hover */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Add a shadow for depth */
+}
+
+/* Styling for the comment form */
+form textarea {
+    width: 100%; /* Make the textarea the same width as the comments */
+    height: 100px; /* Increase the height of the textarea */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+form button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
-.post button[name="type"][value="like"] {
-    background-color: #ffffff;
-    color: #000000;
+form button:hover {
+    background-color: #45a049;
 }
 
-.post button[name="type"][value="dislike"] {
-    background-color: #ffffff;
-    color: #000000;
+/* Styling for the Back to Home button */
+.back-to-home {
+    text-align: right; /* Align the link to the right */
+    margin-top: 10px; /* Optional: adds some space above the link */
 }
 
-.post button:hover {
-    opacity: 0.8;
+.back-to-home a {
+    text-decoration: none; /* Remove underline */
+    color: #0077b6; /* Match the theme color */
+    font-weight: bold;
 }
 
-/* Responsive Comments */
-.comments {
-    margin-top: 15px;
-    padding: 10px;
-    background-color: #f0f0f0;
-    border-radius: 8px;
-}
-
-.comment {
-    background: white;
-    padding: 10px;
-    margin-top: 10px;
-    border-radius: 5px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-}
-
-.comment p {
-    color: #555;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    header {
-        height: 200px;
-    }
-
-    header h1 {
-        font-size: 2rem;
-    }
-
-    .container {
-        width: 95%;
-        padding: 15px;
-    }
-
-    .container p a {
-        font-size: 16px;
-    }
-
-    .post {
-        padding: 10px;
-    }
-}
-
-@media (max-width: 480px) {
-    header {
-        height: 180px;
-    }
-
-    header h1 {
-        font-size: 1.8rem;
-    }
-
-    .container p a {
-        font-size: 14px;
-        padding: 8px;
-    }
-
-    .post {
-        padding: 8px;
-    }
+.back-to-home a:hover {
+    color: #005f7f; /* Darker shade for hover effect, matching the button hover color */
 }

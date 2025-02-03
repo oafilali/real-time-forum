@@ -5,7 +5,25 @@
     <link rel="stylesheet" href="/html/styles.css">
 </head>
 <body>
-    <div class="container">
+    <header>
+        <h1>Åland Forum</h1>
+        <div class="auth-box">
+            <a href="/login">Login</a>
+            <a href="/createPost">Create Post</a>
+            <a href="/register">Register</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </header>
+    <div class="main-container">
+        <!-- Categories Section (Left) -->
+        <div class="categories">
+            <h2>Categories:</h2>
+            <p><a href="/filter?category=General">General</a></p>
+            <p><a href="/filter?category=Tech">Tech</a></p>
+            <p><a href="/filter?category=Viking line">Viking line</a></p>
+        </div>
+
+        <div class="posts-feed">
   
         <div class="post" id="post-{{.Post.ID}}">
             <h2>Category: {{.Post.Category}}</h2>
@@ -65,7 +83,9 @@
             </p>
             {{end}}
         </div>
-        <p><a href="/">Back to Home</a></p>
+        <div class="back-to-home">
+            <p><a href="/">Back to Home</a></p>
+        </div>
     </div>
 </body>
 </html>
