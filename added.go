@@ -150,7 +150,14 @@ func fetchReactionsNumber(itemID int, isComment bool) (likes, dislikes int, err 
 }
 
 func fetchPosts() ([]posts, error) {
-	postRows, err := db.Query("SELECT id, title FROM posts")
+	postRows, err := db.Query(`SELECT 
+    	p.id, 
+    	p.title, 
+    	COALESCE(SUM(CASE WHEN r.type = 'like' THEN 1 ELSE 0 END), 0) AS likes,
+    	COALESCE(SUM(CASE WHEN r.type = 'dislike' THEN 1 ELSE 0 END), 0) AS dislikes
+	FROM posts p
+	LEFT JOIN reactions r ON p.id = r.post_id AND r.comment_id IS NULL
+	GROUP BY p.id, p.title;`)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +170,7 @@ func fetchPosts() ([]posts, error) {
 		var post posts
 
 		// Scan the post data
-		err := postRows.Scan(&post.ID, &post.Title)
+		err := postRows.Scan(&post.ID, &post.Title, &post.Likes, &post.Dislikes)
 		if err != nil {
 			return nil, err
 		}
@@ -173,7 +180,7 @@ func fetchPosts() ([]posts, error) {
 }
 
 func getPostId() (id int, err error) {
-    err = db.QueryRow("SELECT last_insert_rowid()").Scan(&id)
+	err = db.QueryRow("SELECT last_insert_rowid()").Scan(&id)
 	if err != nil {
 		return 0, err
 	}

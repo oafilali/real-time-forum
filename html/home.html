@@ -17,6 +17,15 @@
         {{range .}}
         <div  id="{{.ID}}">
             <p><a href="/post?id={{.ID}}">{{.Title}}</a></p>
+            <!-- Like/Dislike Buttons for Post -->
+            <form action="/like" method="POST" style="display:inline;">
+                <input type="hidden" name="post_id" value="{{.ID}}">
+                <button type="submit" name="type" value="like">👍 ({{.Likes}})</button>
+            </form>
+            <form action="/like" method="POST" style="display:inline;">
+                <input type="hidden" name="post_id" value="{{.ID}}">
+                <button type="submit" name="type" value="dislike">👎 ({{.Dislikes}})</button>
+            </form>
             </div>
             {{end}}
             {{else}}

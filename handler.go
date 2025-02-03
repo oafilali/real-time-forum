@@ -37,6 +37,8 @@ type ViewData struct {
 type posts struct {
 	ID    int
 	Title string
+	Likes    int
+	Dislikes int
 }
 
 // sessions stores active user sessions
