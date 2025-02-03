@@ -8,24 +8,31 @@ import (
 
 func main() {
 	// Initialize the database
-	initDB()
+	initializeDatabase()
 	defer db.Close()
+	startServer()
+}
 
+func startServer() {
+	registerHandlers()
+	serveStaticFiles()
+	log.Println("Server starting on :8088")
+	log.Fatal(http.ListenAndServe(":8088", nil))
+}
+
+func initializeDatabase() {
+	initDB()
+	log.Println("Database initialization complete")
+}
+
+func serveStaticFiles() {
 	// Serve static files (CSS)
 	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("./html"))))
 	http.Handle("/images/", http.StripPrefix("/images/", http.FileServer(http.Dir("./images"))))
 	fmt.Println("Serving images from ./images/")
-/*
-	// Serve the home page
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./html/home.html")
-	})
+}
 
-	*/
-	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "html/favicon.ico")
-	})
-
+func registerHandlers() {
 	// Register HTTP handlers
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/register", registerHandler)
@@ -34,10 +41,6 @@ func main() {
 	http.HandleFunc("/comment", commentHandler)
 	http.HandleFunc("/like", likeHandler)
 	http.HandleFunc("/filter", filterHandler)
-	http.HandleFunc("/post", postHandler)   // New route to display posts
+	http.HandleFunc("/post", viewPostHandler) // New route to display posts
 	http.HandleFunc("/logout", logoutHandler) // New route to handle logout
-
-	// Start the server
-	fmt.Println("Server started at :8088")
-	log.Fatal(http.ListenAndServe(":8088", nil))
 }
