@@ -1,10 +1,8 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 )
 
@@ -21,28 +19,25 @@ type Post struct {
 }
 
 type comment struct {
-	ID      int
+	ID       int
 	Username string
-	UserID  int
-	Content string
+	UserID   int
+	Content  string
 	Likes    int
 	Dislikes int
 }
 
 type postPageData struct {
-    Post   Post
-    SessionID int
+	Post      Post
+	SessionID int
 }
 
 type homePageData struct {
-	ID    int
-	Title string
+	ID       int
+	Title    string
 	Likes    int
 	Dislikes int
 }
-
-// sessions stores active user sessions
-var sessions = make(map[string]int) // session ID -> user ID
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -144,201 +139,110 @@ func createPostHandler(w http.ResponseWriter, r *http.Request) {
 
 // postsHandler displays a single post
 func viewPostHandler(w http.ResponseWriter, r *http.Request) {
-    // Get the post ID from the URL query parameter
-    postID := r.URL.Query().Get("id")
-    if postID == "" {
-        http.Error(w, "Post ID is missing", http.StatusBadRequest)
-        return
-    }
+	// Get the post ID from the URL query parameter
+	postID := r.URL.Query().Get("id")
+	if postID == "" {
+		http.Error(w, "Post ID is missing", http.StatusBadRequest)
+		return
+	}
 
-    post, err := fetchPost(postID)
-    if errorCheckHandlers(w, "Failed to load the post", err, http.StatusInternalServerError) {
-        return
-    }
+	post, err := fetchPost(postID)
+	if errorCheckHandlers(w, "Failed to load the post", err, http.StatusInternalServerError) {
+		return
+	}
 
-    post.Likes, post.Dislikes, err = fetchReactionsNumber(post.ID, false)
-    if errorCheckHandlers(w, "Failed to load the reactions number", err, http.StatusInternalServerError) {
-        return
-    }
+	post.Likes, post.Dislikes, err = fetchReactionsNumber(post.ID, false)
+	if errorCheckHandlers(w, "Failed to load the reactions number", err, http.StatusInternalServerError) {
+		return
+	}
 
-    // Fetch comments for this post
-    post.Comments, err = fetchCommentsForPost(post.ID)
-    if errorCheckHandlers(w, "Failed to load the comments", err, http.StatusInternalServerError) {
-        return
-    }
+	// Fetch comments for this post
+	post.Comments, err = fetchCommentsForPost(post.ID)
+	if errorCheckHandlers(w, "Failed to load the comments", err, http.StatusInternalServerError) {
+		return
+	}
 
-    // Pass UserID to the template if logged in
-    sessionID, err := getUserIDFromSession(r)
-    if err != nil {
-        sessionID = 0 // If there's an error, set sessionID to 0
-    }
+	// Pass UserID to the template if logged in
+	sessionID, err := getUserIDFromSession(r)
+	if err != nil {
+		sessionID = 0 // If there's an error, set sessionID to 0
+	}
 
-    postPageData := postPageData{
-        Post:      post,
-        SessionID: sessionID, // Add the user ID
-    }
+	postPageData := postPageData{
+		Post:      post,
+		SessionID: sessionID, // Add the user ID
+	}
 
-    // Parse the template
-    tmpl, err := template.ParseFiles("./html/post.html")
-    if errorCheckHandlers(w, "Failed to parse the template", err, http.StatusInternalServerError) {
-        return
-    }
+	// Parse the template
+	tmpl, err := template.ParseFiles("./html/post.html")
+	if errorCheckHandlers(w, "Failed to parse the template", err, http.StatusInternalServerError) {
+		return
+	}
 
-    // Execute the template, passing in the post data
-    err = tmpl.Execute(w, postPageData)
-    if errorCheckHandlers(w, "Failed to render the template", err, http.StatusInternalServerError) {
-        return
-    }
+	// Execute the template, passing in the post data
+	err = tmpl.Execute(w, postPageData)
+	if errorCheckHandlers(w, "Failed to render the template", err, http.StatusInternalServerError) {
+		return
+	}
 }
-
 
 // commentHandler handles adding a comment to a post
 func commentHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		// Get the session ID from the cookie
-		cookie, err := r.Cookie("session_id")
-		if err != nil {
-			http.Error(w, "Not logged in", http.StatusUnauthorized)
-			return
-		}
-
-		// Get the user ID from the session
-		userID, ok := sessions[cookie.Value]
-		if !ok {
-			http.Error(w, "Invalid session", http.StatusUnauthorized)
-			return
-		}
-
-		postID := r.FormValue("post_id")
-		content := r.FormValue("content")
-
-		// Log the values for debugging
-		//	log.Printf("Adding comment: post_id=%s, user_id=%d, content=%s\n", postID, userID, content)
-
-		// Insert the comment into the database
-		_, err = db.Exec("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)", postID, userID, content)
-		if err != nil {
-			log.Println("Failed to add comment:", err)
-			http.Error(w, "Failed to add comment", http.StatusInternalServerError)
-			return
-		}
-
-		// Redirect back to the posts page
-		http.Redirect(w, r, fmt.Sprintf("/post?id=%s", postID), http.StatusSeeOther)
-	} else {
+	if r.Method != "POST" {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
 	}
+
+	sessionID, err := getUserIDFromSession(r)
+	if errorCheckHandlers(w, "Invalid session", err, http.StatusUnauthorized) {
+		return
+	}
+
+	postID := r.FormValue("post_id")
+	if postID == "" {
+		http.Error(w, "Post ID is missing", http.StatusBadRequest)
+		return
+	}
+
+	content := r.FormValue("content")
+	if content == "" {
+		http.Error(w, "Content is missing", http.StatusBadRequest)
+		return
+	}
+
+	if err := addComment(sessionID, postID, content); errorCheckHandlers(w, "Failed to add the comment", err, http.StatusInternalServerError) {
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/post?id=%s", postID), http.StatusFound)
 }
 
-// likeHandler handles liking or disliking a post
+// likeHandler handles liking or disliking a post or comment
 func likeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		// Get the session ID from the cookie
-		cookie, err := r.Cookie("session_id")
-		if err != nil {
-			http.Error(w, "Not logged in", http.StatusUnauthorized)
-			return
-		}
-
-		// Get the user ID from the session
-		userID, ok := sessions[cookie.Value]
-		if !ok {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-
-		postID := r.FormValue("post_id")
-		commentID := r.FormValue("comment_id")
-		reactionType := r.FormValue("type")
-
-		var currentReact string
-		var targetID string
-		var isComment bool
-
-		// Determine if it's a post or a comment
-
-		if commentID != "" {
-			targetID = commentID
-			isComment = true
-		} else if postID == "" {
-			http.Error(w, "No ID provided", http.StatusBadRequest)
-			return
-		} else {
-			targetID = postID
-		}
-
-		// Define the appropriate table and ID column based on whether it's a post or a comment
-		var tableName, idColumn string
-		if isComment {
-			tableName = "reactions"
-			idColumn = "comment_id"
-		} else {
-			tableName = "reactions"
-			idColumn = "post_id"
-		}
-
-		// Check if the user has already reacted to the post/comment
-		var res *sql.Rows
-		if isComment {
-			res, _ = db.Query(`SELECT type FROM reactions WHERE user_id = ? AND comment_id = ?;`, userID, targetID)
-		} else {
-			res, _ = db.Query(`SELECT type FROM reactions WHERE user_id = ? AND post_id = ?;`, userID, targetID)
-		}
-
-		if !res.Next() {
-			// No previous reaction found, so insert the new reaction
-			res.Close()
-			_, err := db.Exec(fmt.Sprintf("INSERT INTO %s (%s, user_id, type) VALUES (?, ?, ?)", tableName, idColumn), targetID, userID, reactionType)
-			if err != nil {
-				http.Error(w, "Failed to react", http.StatusInternalServerError)
-				return
-			}
-		} else {
-			// A previous reaction exists, so toggle it if needed
-			err := res.Scan(&currentReact)
-			res.Close()
-			if err != nil {
-				http.Error(w, "Failed to fetch reaction", http.StatusInternalServerError)
-				return
-			}
-			if (reactionType == "like" && currentReact == "dislike") || (reactionType == "dislike" && currentReact == "like") {
-				// Remove the existing reaction
-				if isComment {
-					_, err = db.Exec(`DELETE FROM reactions WHERE user_id = ? AND comment_id = ?;`, userID, targetID)
-				} else {
-					_, err = db.Exec(`DELETE FROM reactions WHERE user_id = ? AND post_id = ?;`, userID, targetID)
-				}
-				if err != nil {
-					http.Error(w, "Failed to remove existing reaction", http.StatusInternalServerError)
-					return
-				}
-				// Insert the new reaction
-				_, err = db.Exec(fmt.Sprintf("INSERT INTO %s (%s, user_id, type) VALUES (?, ?, ?)", tableName, idColumn), targetID, userID, reactionType)
-				if err != nil {
-					http.Error(w, "Failed to insert new reaction", http.StatusInternalServerError)
-					return
-				}
-			}
-		}
-
-		//fmt.Println("postID ", postID)
-
-		// Check if postID was found
-		if postID == "" {
-			http.Error(w, "Post ID is missing", http.StatusBadRequest)
-			return
-		}
-
-		http.Redirect(w, r, fmt.Sprintf("/post?id=%s", postID), http.StatusSeeOther)
-		/*	// Redirect back to the post or comment page
-			if isComment {
-				http.Redirect(w, r, "/posts#"+postID+"#comment-"+commentID, http.StatusSeeOther)
-			} else {
-				http.Redirect(w, r, "/posts#"+postID, http.StatusSeeOther)
-			} */
-	} else {
+	if r.Method != "POST" {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
 	}
+
+	sessionID, err := getUserIDFromSession(r)
+	if errorCheckHandlers(w, "Invalid session", err, http.StatusUnauthorized) {
+		return
+	}
+
+	itemID := r.FormValue("item_id")
+	if itemID == "" {
+		http.Error(w, "Item ID is missing", http.StatusBadRequest)
+		return
+	}
+
+	isComment := r.FormValue("is_comment") == "true"
+	reactionType := r.FormValue("type") // "like" or "dislike"
+
+	if err := likeItem(sessionID, itemID, isComment, reactionType); errorCheckHandlers(w, "Failed to like the item", err, http.StatusInternalServerError) {
+		return
+	}
+
+	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
 }
 
 // logoutHandler handles user logout

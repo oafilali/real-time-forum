@@ -15,7 +15,6 @@
         </div>
     </header>
     <div class="main-container">
-        <!-- Categories Section (Left) -->
         <div class="categories">
             <h2>Categories:</h2>
             <p><a href="/filter?category=General">General</a></p>
@@ -23,20 +22,21 @@
             <p><a href="/filter?category=Viking line">Viking line</a></p>
         </div>
     
-        <!-- Posts Feed (Center) -->
         <div class="posts-feed">
             <h2>All posts:</h2>
             {{if .}}
             {{range .}}
             <div id="{{.ID}}">
                 <p><a href="/post?id={{.ID}}">{{.Title}}</a></p>
-                <!-- Like/Dislike Buttons -->
+                <!-- Like/Dislike Buttons for Posts -->
                 <form action="/like" method="POST" style="display:inline;">
-                    <input type="hidden" name="post_id" value="{{.ID}}">
+                    <input type="hidden" name="item_id" value="{{.ID}}">
+                    <input type="hidden" name="is_comment" value="false">
                     <button type="submit" name="type" value="like">👍 ({{.Likes}})</button>
                 </form>
                 <form action="/like" method="POST" style="display:inline;">
-                    <input type="hidden" name="post_id" value="{{.ID}}">
+                    <input type="hidden" name="item_id" value="{{.ID}}">
+                    <input type="hidden" name="is_comment" value="false">
                     <button type="submit" name="type" value="dislike">👎 ({{.Dislikes}})</button>
                 </form>
             </div>

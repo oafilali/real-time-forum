@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -240,4 +241,47 @@ func fetchCommentsForPost(postID int) ([]comment, error) {
 	}
 
 	return comments, nil
+}
+
+// addComment inserts a new comment into the database
+func addComment(userID int, postID string, content string) error {
+	query := "INSERT INTO comments (user_id, post_id, content) VALUES (?, ?, ?)"
+	_, err := db.Exec(query, userID, postID, content)
+	return err
+}
+
+// likeItem adds or toggles a reaction (like/dislike) for a post or comment
+func likeItem(userID int, itemID string, isComment bool, reactionType string) error {
+	var table, idColumn string
+	if isComment {
+		table, idColumn = "reactions", "comment_id"
+	} else {
+		table, idColumn = "reactions", "post_id"
+	}
+
+	// Check if user already reacted
+	var existingReaction string
+	query := fmt.Sprintf("SELECT type FROM %s WHERE user_id = ? AND %s = ?", table, idColumn)
+	err := db.QueryRow(query, userID, itemID).Scan(&existingReaction)
+
+	if err == sql.ErrNoRows {
+		// No reaction exists, insert a new one
+		insertQuery := fmt.Sprintf("INSERT INTO %s (%s, user_id, type) VALUES (?, ?, ?)", table, idColumn)
+		_, err := db.Exec(insertQuery, itemID, userID, reactionType)
+		return err
+	} else if err != nil {
+		return err
+	}
+
+	// If the existing reaction is different, update it
+	if existingReaction != reactionType {
+		updateQuery := fmt.Sprintf("UPDATE %s SET type = ? WHERE user_id = ? AND %s = ?", table, idColumn)
+		_, err := db.Exec(updateQuery, reactionType, userID, itemID)
+		return err
+	}
+
+	// If the same reaction exists, remove it (toggle off)
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE user_id = ? AND %s = ?", table, idColumn)
+	_, err = db.Exec(deleteQuery, userID, itemID)
+	return err
 }
