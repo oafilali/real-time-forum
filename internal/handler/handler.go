@@ -53,24 +53,42 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		email := r.FormValue("email")
 		password := r.FormValue("password")
 
+		// Check if email already exists
 		if user.CheckEmailExists(w, email) {
+			// Redirect to the register page with an error message in the query string
+			http.Redirect(w, r, "/register?error=Email%20already%20taken", http.StatusFound)
 			return
 		}
 
+		// Hash the password
 		hashed, err := user.HashPassword(password)
 		if util.ErrorCheckHandlers(w, "Password hashing failed", err, http.StatusInternalServerError) {
 			return
 		}
 
+		// Save user to the database
 		if err := user.SaveUser(username, email, hashed); util.ErrorCheckHandlers(w, "User registration failed", err, http.StatusInternalServerError) {
 			return
 		}
 
+		// Redirect to login page on successful registration
 		http.Redirect(w, r, "/login", http.StatusFound)
 	} else {
-		http.ServeFile(w, r, "./web/templates/register.html")
+		// Handle GET request for the register page
+		// Pass any potential error messages to the template
+		errorMessage := r.URL.Query().Get("error")
+		data := struct {
+			ErrorMessage string
+		}{
+			ErrorMessage: errorMessage,
+		}
+
+		// Render the register template with the error message (if any)
+		tmpl := template.Must(template.ParseFiles("./web/templates/register.html"))
+		tmpl.Execute(w, data)
 	}
 }
+
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		email := r.FormValue("email")
@@ -111,9 +129,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, data)
 	}
 }
-
-
-
 
 // postHandler handles creating a new post
 func CreatePostHandler(w http.ResponseWriter, r *http.Request) {

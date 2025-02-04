@@ -12,14 +12,12 @@ import (
 func CheckEmailExists(w http.ResponseWriter, email string) bool {
 	var count int
 	err := database.Db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&count)
-	if util.ErrorCheckHandlers(w, "Database error", err, http.StatusInternalServerError) {
+	if err != nil {
+		// If there's an error querying the database, handle it here
+		util.ErrorCheckHandlers(w, "Database error", err, http.StatusInternalServerError)
 		return true
 	}
-	if count > 0 {
-		http.Error(w, "Email already taken", http.StatusBadRequest)
-		return true
-	}
-	return false
+	return count > 0
 }
 
 func HashPassword(password string) (string, error) {

@@ -11,6 +11,12 @@
     </header>
     <div class="container">
         <h1>Register</h1>
+         <!-- Display error message if exists -->
+    {{if .ErrorMessage}}
+    <div style="color: red; font-weight: bold;">
+        {{.ErrorMessage}}
+    </div>
+    {{end}}
         <form action="/register" method="POST">
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>
