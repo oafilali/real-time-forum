@@ -97,15 +97,28 @@ func deleteSession(sessionID string) error {
 func getUserIDFromSession(r *http.Request) (int, error) {
 	cookie, err := r.Cookie("session_id")
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("no session found")
 	}
 
 	var userID int
+	var expiresAt time.Time
 	err = db.QueryRow(
-		"SELECT id FROM sessions WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP",
-		cookie.Value,
-	).Scan(&userID)
-	return userID, err
+		"SELECT id, expires_at FROM sessions WHERE session_id = ?", cookie.Value,
+	).Scan(&userID, &expiresAt)
+
+	if err == sql.ErrNoRows {
+		return 0, fmt.Errorf("session not found")
+	} else if err != nil {
+		return 0, err
+	}
+
+	// Check if session has expired
+	if time.Now().After(expiresAt) {
+		deleteSession(cookie.Value) // Cleanup expired session
+		return 0, fmt.Errorf("session expired")
+	}
+
+	return userID, nil
 }
 
 func createPost(userID int, title, content, category string) error {
@@ -284,4 +297,13 @@ func likeItem(userID int, itemID string, isComment bool, reactionType string) er
 	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE user_id = ? AND %s = ?", table, idColumn)
 	_, err = db.Exec(deleteQuery, userID, itemID)
 	return err
+}
+
+func cleanupExpiredSessions() {
+	_, err := db.Exec("DELETE FROM sessions WHERE expires_at <= CURRENT_TIMESTAMP")
+	if err != nil {
+		log.Println("Failed to clean expired sessions:", err)
+	} else {
+		log.Println("Expired sessions cleaned up successfully")
+	}
 }

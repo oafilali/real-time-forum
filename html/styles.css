@@ -70,7 +70,7 @@ header h1 {
     width: 200px; /* Adjust as needed */
 }
 
-/* Category Links */
+/* Category and Filter Links */
 .categories a {
     display: block;
     padding: 8px 12px;
@@ -81,11 +81,11 @@ header h1 {
     transition: background-color 0.3s, box-shadow 0.3s;
 }
 
-/* Hover Effect */
 .categories a:hover {
-    background-color: rgba(0, 119, 182, 0.1); /* Light highlight */
+    background-color: rgba(0, 119, 182, 0.1);
     box-shadow: 0px 0px 5px rgba(0, 119, 182, 0.3);
 }
+
 .categories h2 {
     font-size: 18px;
     margin-bottom: 10px;

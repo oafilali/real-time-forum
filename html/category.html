@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Home</title>
+    <title>Filtered Posts</title>
     <link rel="stylesheet" href="/html/styles.css">
 </head>
 <body>
@@ -15,32 +15,29 @@
         </div>
     </header>
 
-
     <div class="main-container">
-        <!-- Categories Section (Left) -->
         <div class="categories">
             <h2>Categories:</h2>
             <p><a href="/filter?category=General">General</a></p>
             <p><a href="/filter?category=Tech">Tech</a></p>
             <p><a href="/filter?category=Viking line">Viking line</a></p>
+            <h2>Filters:</h2>
+            <p><a href="/filter?user_created=true">My Posts</a></p>
+            <p><a href="/filter?liked=true">Liked Posts</a></p>
         </div>
     
-        <!-- Posts Feed (Center) -->
         <div class="posts-feed">
             <h1>{{.Category}}</h1>
-
-        {{if .Posts}}
-            {{range .Posts}}
-            <div id="{{.ID}}">
-                <p><a href="/posts?id={{.ID}}">{{.Title}}</a></p>
-            </div>
+            {{if .Posts}}
+                {{range .Posts}}
+                <div id="{{.ID}}">
+                    <p><a href="/post?id={{.ID}}">{{.Title}}</a></p>
+                </div>
+                {{end}}
+            {{else}}
+                <p>No posts found.</p>
             {{end}}
-        {{else}}
-            <p>No posts yet.</p>
-        {{end}}
         </div>
     </div>
 </body>
 </html>
-
-

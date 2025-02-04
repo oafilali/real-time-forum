@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -263,76 +264,87 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 
 // filterHandler handles filtering posts by category
 func filterHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		// Get the category from the query parameter
-		category := r.URL.Query().Get("category")
-		if category == "" {
-			http.Error(w, "Category parameter is missing", http.StatusBadRequest)
-			return
-		}
-
-		// Query the posts for the specified category
-		rows, err := db.Query("SELECT id, user_id, title, content, category FROM posts WHERE category = ?", category)
-		if err != nil {
-			http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
-
-		// Define a slice to hold the posts
-		var posts []struct {
-			ID       int
-			UserID   int
-			Title    string
-			Content  string
-			Category string
-		}
-
-		// Scan the rows into the posts slice
-		for rows.Next() {
-			var post struct {
-				ID       int
-				UserID   int
-				Title    string
-				Content  string
-				Category string
-			}
-			err := rows.Scan(&post.ID, &post.UserID, &post.Title, &post.Content, &post.Category)
-			if err != nil {
-				http.Error(w, "Failed to scan post", http.StatusInternalServerError)
-				return
-			}
-			posts = append(posts, post)
-		}
-
-		// Prepare the data to pass to the template
-		data := struct {
-			Category string
-			Posts    []struct {
-				ID       int
-				UserID   int
-				Title    string
-				Content  string
-				Category string
-			}
-		}{
-			Category: category,
-			Posts:    posts,
-		}
-
-		// Parse and execute the template
-		tmpl, err := template.ParseFiles("./html/category.html")
-		if err != nil {
-			http.Error(w, "Failed to parse template", http.StatusInternalServerError)
-			return
-		}
-
-		err = tmpl.Execute(w, data)
-		if err != nil {
-			http.Error(w, "Failed to execute template", http.StatusInternalServerError)
-			return
-		}
-	} else {
+	if r.Method != "GET" {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, _ := getUserIDFromSession(r) // Get logged-in user ID (if any)
+
+	category := r.URL.Query().Get("category")
+	userCreated := r.URL.Query().Get("user_created") == "true"
+	liked := r.URL.Query().Get("liked") == "true"
+
+	var rows *sql.Rows
+	var err error
+
+	if userCreated && userID > 0 {
+		// Fetch posts created by the logged-in user
+		rows, err = db.Query("SELECT id, title, category FROM posts WHERE user_id = ?", userID)
+	} else if liked && userID > 0 {
+		// Fetch posts liked by the logged-in user
+		rows, err = db.Query(`
+			SELECT p.id, p.title, p.category 
+			FROM posts p
+			JOIN reactions r ON p.id = r.post_id 
+			WHERE r.user_id = ? AND r.type = 'like'
+		`, userID)
+	} else if category != "" {
+		// Fetch posts by category
+		rows, err = db.Query("SELECT id, title, category FROM posts WHERE category = ?", category)
+	} else {
+		// Invalid filter request
+		http.Error(w, "Invalid filter request", http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// Collect filtered posts
+	var posts []struct {
+		ID       int
+		Title    string
+		Category string
+	}
+
+	for rows.Next() {
+		var post struct {
+			ID       int
+			Title    string
+			Category string
+		}
+		if err := rows.Scan(&post.ID, &post.Title, &post.Category); err != nil {
+			http.Error(w, "Failed to scan post", http.StatusInternalServerError)
+			return
+		}
+		posts = append(posts, post)
+	}
+
+	// Prepare data for the template
+	data := struct {
+		Category string
+		Posts    []struct {
+			ID       int
+			Title    string
+			Category string
+		}
+	}{
+		Category: category,
+		Posts:    posts,
+	}
+
+	// Render the template
+	tmpl, err := template.ParseFiles("./html/category.html")
+	if err != nil {
+		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, "Failed to execute template", http.StatusInternalServerError)
 	}
 }

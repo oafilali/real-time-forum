@@ -22,6 +22,7 @@ func startServer() {
 
 func initializeDatabase() {
 	initDB()
+	cleanupExpiredSessions() 
 	log.Println("Database initialization complete")
 }
 
