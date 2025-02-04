@@ -13,6 +13,7 @@ import (
 	"forum/internal/util"
 	"html/template"
 	"net/http"
+	"strings"
 )
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,10 +102,10 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 
 		title := r.FormValue("title")
 		content := r.FormValue("content")
-		category := r.FormValue("category")
+		categories := strings.Join(r.Form["categories"], ", ")
 
 		// Insert the post into the database
-		if err := post.CreatePost(userID, title, content, category); util.ErrorCheckHandlers(w, "Post creation failed", err, http.StatusInternalServerError) {
+		if err := post.CreatePost(userID, title, content, categories); util.ErrorCheckHandlers(w, "Post creation failed", err, http.StatusInternalServerError) {
 			return
 		}
 
@@ -312,13 +313,12 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
         `, userID)
 	} else if category != "" {
 		// Fetch posts by category
-		rows, err = database.Db.Query("SELECT id, title, category FROM posts WHERE category = ?", category)
+		rows, err = database.Db.Query("SELECT id, title, category FROM posts WHERE category LIKE ?", "%"+category+"%")
 	} else {
 		// Invalid filter request
 		http.Error(w, "Invalid filter request", http.StatusBadRequest)
 		return
 	}
-
 	if err != nil {
 		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
 		return
