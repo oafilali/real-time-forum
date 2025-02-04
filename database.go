@@ -64,6 +64,7 @@ func createTables() {
 			FOREIGN KEY(post_id) REFERENCES posts(id),
 			FOREIGN KEY(user_id) REFERENCES users(id),
 			UNIQUE (user_id, post_id)
+			UNIQUE (user_id, comment_id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS sessions (
 		session_id TEXT PRIMARY KEY,

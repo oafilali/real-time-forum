@@ -8,12 +8,16 @@
     <header>
         <h1>Åland Forum</h1>
         <div class="auth-box">
-            <a href="/login">Login</a>
-            <a href="/createPost">Create Post</a>
-            <a href="/register">Register</a>
-            <a href="/logout">Logout</a>
+            {{if .SessionID}}
+                <p>Logged in as: <strong>{{.Username}}</strong></p>
+                <a href="/createPost">Create Post</a>
+                <a href="/logout">Logout</a>
+            {{else}}
+                <a href="/login">Login</a>
+                <a href="/register">Register</a>
+            {{end}}
         </div>
-    </header>
+    </header>    
     <div class="main-container">
         <div class="categories">
             <h2>Categories:</h2>

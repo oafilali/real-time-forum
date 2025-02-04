@@ -12,19 +12,16 @@ import (
 )
 
 func checkEmailExists(w http.ResponseWriter, email string) bool {
-	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&count)
-	if errorCheckHandlers(w, "Database error", err, http.StatusInternalServerError) {
-		return true
-	}
-	if count > 1 {
-		http.Error(w, "Database integrity error", http.StatusInternalServerError)
-		return true
-	} else if count == 1 {
-		http.Error(w, "Email already taken", http.StatusBadRequest)
-		return true
-	}
-	return false
+    var count int
+    err := db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&count)
+    if errorCheckHandlers(w, "Database error", err, http.StatusInternalServerError) {
+        return true
+    }
+    if count > 0 {
+        http.Error(w, "Email already taken", http.StatusBadRequest)
+        return true
+    }
+    return false
 }
 
 func hashPassword(password string) (string, error) {
@@ -66,6 +63,13 @@ func authenticateUser(email, password string) (int, error) {
 }
 
 func createSession(w http.ResponseWriter, userID int) error {
+	// Delete all existing sessions for this user
+	_, err := db.Exec("DELETE FROM sessions WHERE id = ?", userID)
+	if err != nil {
+		return err
+	}
+
+	// Create a new session
 	sessionID, err := uuid.NewV4()
 	if err != nil {
 		return err
@@ -80,6 +84,7 @@ func createSession(w http.ResponseWriter, userID int) error {
 		return err
 	}
 
+	// Set the new session cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
 		Value:    sessionID.String(),
