@@ -24,11 +24,14 @@
             <p><a href="/filter?category=General">General</a></p>
             <p><a href="/filter?category=Tech">Tech</a></p>
             <p><a href="/filter?category=Viking line">Viking line</a></p>
+
+            {{if .SessionID}}
             <h2>Filters:</h2>
             <p><a href="/filter?user_created=true">My Posts</a></p>
             <p><a href="/filter?liked=true">Liked Posts</a></p>
+            {{end}}
         </div>
-    
+
         <div class="posts-feed">
             <h2>All posts:</h2>
             {{if .Posts}}
@@ -39,12 +42,12 @@
                 <form action="/like" method="POST" style="display:inline;">
                     <input type="hidden" name="item_id" value="{{.ID}}">
                     <input type="hidden" name="is_comment" value="false">
-                    <button type="submit" name="type" value="like">👍 ({{.Likes}})</button>
+                    <button type="submit" name="type" value="like">👍 {{.Likes}}</button>
                 </form>
                 <form action="/like" method="POST" style="display:inline;">
                     <input type="hidden" name="item_id" value="{{.ID}}">
                     <input type="hidden" name="is_comment" value="false">
-                    <button type="submit" name="type" value="dislike">👎 ({{.Dislikes}})</button>
+                    <button type="submit" name="type" value="dislike">👎 {{.Dislikes}}</button>
                 </form>
             </div>
             {{end}}

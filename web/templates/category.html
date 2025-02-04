@@ -24,9 +24,12 @@
             <p><a href="/filter?category=General">General</a></p>
             <p><a href="/filter?category=Tech">Tech</a></p>
             <p><a href="/filter?category=Viking line">Viking line</a></p>
+    
+            {{if .SessionID}}
             <h2>Filters:</h2>
             <p><a href="/filter?user_created=true">My Posts</a></p>
             <p><a href="/filter?liked=true">Liked Posts</a></p>
+            {{end}}
         </div>
     
         <div class="posts-feed">

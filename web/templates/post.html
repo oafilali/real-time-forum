@@ -37,12 +37,12 @@
                 <form action="/like" method="POST" style="display:inline;">
                     <input type="hidden" name="item_id" value="{{.Post.ID}}">
                     <input type="hidden" name="is_comment" value="false">
-                    <button type="submit" name="type" value="like">👍 ({{.Post.Likes}})</button>
+                    <button type="submit" name="type" value="like">👍 {{.Post.Likes}}</button>
                 </form>
                 <form action="/like" method="POST" style="display:inline;">
                     <input type="hidden" name="item_id" value="{{.Post.ID}}">
                     <input type="hidden" name="is_comment" value="false">
-                    <button type="submit" name="type" value="dislike">👎 ({{.Post.Dislikes}})</button>
+                    <button type="submit" name="type" value="dislike">👎 {{.Post.Dislikes}}</button>
                 </form>
 
                 <h3>Comments</h3>
@@ -55,12 +55,12 @@
                     <form action="/like" method="POST" style="display:inline;">
                         <input type="hidden" name="item_id" value="{{.ID}}">
                         <input type="hidden" name="is_comment" value="true">
-                        <button type="submit" name="type" value="like">👍 ({{.Likes}})</button>
+                        <button type="submit" name="type" value="like">👍 {{.Likes}}</button>
                     </form>
                     <form action="/like" method="POST" style="display:inline;">
                         <input type="hidden" name="item_id" value="{{.ID}}">
                         <input type="hidden" name="is_comment" value="true">
-                        <button type="submit" name="type" value="dislike">👎 ({{.Dislikes}})</button>
+                        <button type="submit" name="type" value="dislike">👎 {{.Dislikes}}</button>
                     </form>
                 </div>
                 {{else}}

@@ -244,7 +244,13 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID, err := session.GetUserIDFromSession(r)
+
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+
 	if util.ErrorCheckHandlers(w, "Invalid session", err, http.StatusUnauthorized) {
+
 		return
 	}
 
