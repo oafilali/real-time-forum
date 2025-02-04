@@ -10,7 +10,7 @@ body {
 
 /* Responsive Header */
 header {
-    background-image: url('/images/aland.jpg');
+    background-image: url('../image/aland.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

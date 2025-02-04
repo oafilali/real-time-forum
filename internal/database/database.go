@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"database/sql"
@@ -7,10 +7,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var db *sql.DB
+var Db *sql.DB
 
 // initDB initializes the SQLite database and creates the necessary tables
-func initDB() {
+func InitDB() {
 	connectDB()
 	verifyConnection()
 
@@ -20,13 +20,13 @@ func initDB() {
 
 func connectDB() {
 	var err error
-	db, err = sql.Open("sqlite3", "./forum.db")
-	errorCheck("Database connection failed: ", err)
+	Db, err = sql.Open("sqlite3", "data/forum.db")
+	ErrorCheck("Database connection failed: ", err)
 }
 
 func verifyConnection() {
-	err := db.Ping()
-	errorCheck("Database ping failed: ", err)
+	err := Db.Ping()
+	ErrorCheck("Database ping failed: ", err)
 	log.Println("Database connected successfully")
 }
 
@@ -75,7 +75,7 @@ func createTables() {
 	}
 
 	for _, table := range tables {
-		_, err := db.Exec(table)
+		_, err := Db.Exec(table)
 		if err != nil {
 			log.Fatalf("Failed to create table: %v", err)
 		}
@@ -84,7 +84,7 @@ func createTables() {
 	log.Println("Tables created successfully")
 }
 
-func errorCheck(msg string, err error) {
+func ErrorCheck(msg string, err error) {
 	if err != nil {
 		log.Fatal(msg, err)
 	}
