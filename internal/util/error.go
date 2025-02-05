@@ -15,6 +15,8 @@ func ErrorCheckHandlers(w http.ResponseWriter, r *http.Request, msg string, err 
 }
 
 func ErrorHandler(w http.ResponseWriter, r *http.Request, errorCode int, errorMessage string) {
+	w.WriteHeader(errorCode) // Ensure status code is set before writing the response body
+
 	data := struct {
 		ErrorCode    int
 		ErrorMessage string
@@ -29,6 +31,4 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request, errorCode int, errorMe
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(errorCode)
 }

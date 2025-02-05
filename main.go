@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-
 	util.LoadTemplates() // Load all templates at startup
 
 	// Initialize the database
@@ -31,7 +30,7 @@ func startServer() {
 	// Use custom 404 handler for undefined routes
 	log.Fatal(http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" && !isRegisteredRoute(r.URL.Path) && !isStaticFile(r.URL.Path) {
-			handler.NotFoundHandler(w, r)
+			util.ErrorHandler(w, r, http.StatusNotFound, "Page Not Found")
 			return
 		}
 		http.DefaultServeMux.ServeHTTP(w, r)
