@@ -24,7 +24,18 @@ func startServer() {
 	serveStaticFiles()
 	util.LoadTemplates() // Load all templates at startup
 	log.Println("Server starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	// Homepage handler
+	http.HandleFunc("/", handler.HomeHandler)
+
+	// Use custom 404 handler for undefined routes
+	log.Fatal(http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" && !isRegisteredRoute(r.URL.Path) && !isStaticFile(r.URL.Path) {
+			handler.NotFoundHandler(w, r)
+			return
+		}
+		http.DefaultServeMux.ServeHTTP(w, r)
+	})))
 }
 
 func initializeDatabase() {
@@ -34,7 +45,6 @@ func initializeDatabase() {
 }
 
 func serveStaticFiles() {
-	// Serve static files (CSS)
 	// Serve static files (CSS, JS, images)
 	fs := http.FileServer(http.Dir("./web/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -42,7 +52,6 @@ func serveStaticFiles() {
 
 func registerHandlers() {
 	// Register HTTP handlers
-	http.HandleFunc("/", handler.HomeHandler)
 	http.HandleFunc("/register", handler.RegisterHandler)
 	http.HandleFunc("/login", handler.LoginHandler)
 	http.HandleFunc("/createPost", handler.CreatePostHandler)
@@ -51,4 +60,18 @@ func registerHandlers() {
 	http.HandleFunc("/filter", handler.FilterHandler)
 	http.HandleFunc("/post", handler.ViewPostHandler) // New route to display posts
 	http.HandleFunc("/logout", handler.LogoutHandler) // New route to handle logout
+}
+
+func isRegisteredRoute(path string) bool {
+	registeredRoutes := []string{"/", "/register", "/login", "/createPost", "/comment", "/like", "/filter", "/post", "/logout"}
+	for _, route := range registeredRoutes {
+		if path == route {
+			return true
+		}
+	}
+	return false
+}
+
+func isStaticFile(path string) bool {
+	return len(path) >= 8 && path[:8] == "/static/"
 }

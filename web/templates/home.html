@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Error - Åland Forum</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-</head>
+    <title>Åland Forum</title>
+    <link rel="stylesheet" href="/static/css/styles.css"></head>
 <body>
     <header>
         <h1>Åland Forum</h1>
@@ -33,9 +32,15 @@
         </div>
 
         <div class="posts-feed">
-            <h1 style="color: red;">Error {{.ErrorCode}}</h1>
-            <p>{{.ErrorMessage}}</p>
-            <a href="/" class="back-to-home">Go Back Home</a>
+            {{range .Posts}}
+                <div class="post">
+                    <h2>{{.Title}}</h2>
+                    <p>{{.Content}}</p>
+                    <p>Posted by {{.Username}} on {{.Date}}</p>
+                </div>
+            {{else}}
+                <p>No posts available.</p>
+            {{end}}
         </div>
     </div>
 </body>

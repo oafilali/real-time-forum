@@ -53,13 +53,13 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 
 		// Check if username already exists
-		if user.CheckUsernameExists(w, username) {
+		if user.CheckUsernameExists(w, r, username) {
 			http.Redirect(w, r, "/register?error=Username%20already%20taken", http.StatusFound)
 			return
 		}
 
 		// Check if email already exists
-		if user.CheckEmailExists(w, email) {
+		if user.CheckEmailExists(w, r, email) {
 			http.Redirect(w, r, "/register?error=Email%20already%20taken", http.StatusFound)
 			return
 		}
@@ -419,18 +419,6 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ErrorHandler(w http.ResponseWriter, r *http.Request, errorCode int, errorMessage string) {
-	w.WriteHeader(errorCode)
-	data := struct {
-		ErrorCode    int
-		ErrorMessage string
-	}{
-		ErrorCode:    errorCode,
-		ErrorMessage: errorMessage,
-	}
-
-	err := util.Templates.ExecuteTemplate(w, "error.html", data)
-	if util.ErrorCheckHandlers(w, r, "Error loading the page", err, http.StatusInternalServerError) {
-		return
-	}
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	util.ErrorHandler(w, r, http.StatusNotFound, "Page Not Found")
 }

@@ -10,6 +10,7 @@ type Post struct {
 	Likes    int
 	Dislikes int
 	Comments []Comment
+	Date     string
 }
 
 type Comment struct {
@@ -29,8 +30,11 @@ type PostPageData struct {
 type HomePageData struct {
 	ID       int
 	Title    string
+	Content  string
+	Username string
 	Likes    int
 	Dislikes int
+	Date     string
 }
 
 type Data struct {
