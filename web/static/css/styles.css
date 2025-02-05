@@ -1,33 +1,38 @@
 /* General Styling */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Poppins', sans-serif;
     margin: 0;
     padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-height: 100vh;
+    position: relative;
+    padding-bottom: 80px;
 }
 
-/* Responsive Header */
+body p {
+    font-size: 20px; /* Adjust the size as needed */
+}
+/* Header Styling */
 header {
-    background-image: url('../image/aland.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background: url('../image/aland.jpg') center/cover;
     height: 250px;
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    text-align: bottom;
+    text-align: center;
+    padding-bottom: 20px;
 }
 
 header h1 {
     color: white;
     font-size: 2.5rem;
     font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Stronger shadow for visibility */
-    padding: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
 /* Auth Links Box */
@@ -35,98 +40,318 @@ header h1 {
     position: absolute;
     top: 15px;
     right: 20px;
-    background-color: white;
-    padding: 10px 15px;
-    border-radius: 8px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     display: flex;
-    gap: 10px;
+    align-items: center;
+    gap: 15px;
+    backdrop-filter: blur(5px);
 }
 
+/* Style for the username display */
+.auth-box p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #555;
+}
+
+.auth-box strong {
+    color: #0077b6;
+    font-weight: 600;
+}
+
+/* Style for the links */
 .auth-box a {
     color: #0077b6;
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    background-color: transparent;
 }
 
-.auth-box a:hover {
-    text-decoration: underline;
+/* Special styling for Create Post link */
+.auth-box a[href="/createPost"] {
+    background-color: #0077b6;
+    color: white;
+}
+
+.auth-box a[href="/createPost"]:hover {
+    background-color: #005f7f;
+    transform: translateY(-1px);
+}
+
+/* Style for Logout link */
+.auth-box a[href="/logout"] {
+    color: #dc3545;
+}
+
+.auth-box a[href="/logout"]:hover {
+    background-color: #ffebee;
+    color: #dc3545;
+}
+
+/* Regular link hover states */
+.auth-box a:not([href="/createPost"]):not([href="/logout"]):hover {
+    background-color: #e3f2fd;
 }
 
 /* Main Layout */
 .main-container {
     display: flex;
-    width: 80%;
-    margin-top: 20px;
+    width: 85%;
+    margin: 20px auto;
+    gap: 20px;
 }
 
-/* Categories on the Left */
-/* Categories Section */
+/* Categories Sidebar */
 .categories {
     background-color: white;
-    padding: 15px;
+    padding: 20px;
     border-radius: 8px;
     box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    width: 200px; /* Adjust as needed */
+    width: 250px;
+    height: fit-content;
 }
 
-/* Category and Filter Links */
 .categories a {
     display: block;
-    padding: 8px 12px;
+    padding: 10px;
     text-decoration: none;
-    color: #106b9c;
+    color: #0077b6;
     font-weight: bold;
     border-radius: 5px;
-    transition: background-color 0.3s, box-shadow 0.3s;
+    transition: all 0.3s ease;
 }
 
 .categories a:hover {
     background-color: rgba(0, 119, 182, 0.1);
     box-shadow: 0px 0px 5px rgba(0, 119, 182, 0.3);
+    transform: translateX(5px);
 }
 
-.categories h2 {
-    font-size: 18px;
-    margin-bottom: 10px;
-}
-
-.categories p {
-    margin: 5px 0;
-}
-
-/* Posts Feed (Center) */
+/* Posts Feed */
 .posts-feed {
     flex-grow: 1;
-    padding: 15px;
+    padding: 20px;
     background-color: white;
     border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* Post Styling */
-.posts-feed div {
+.post {
     background-color: #e3f2fd;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 10px;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Remove default button styles */
+.post:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.post h2 a {
+    color: #0077b6;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.post h2 a:hover {
+    color: #005f7f;
+    text-decoration: underline;
+}
+
+/* Post Meta */
+.post-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.post-meta .left {
+    display: flex;
+    gap: 10px;
+    color: #666;
+}
+
+.post-meta .right {
+    display: flex;
+    gap: 5px;
+}
+
+/* Like/Dislike Buttons */
 button[name="type"] {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 16px; /* Adjust size if needed */
+    font-size: 16px;
     padding: 5px;
-    color: inherit; /* Keeps the text color consistent */
+    transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-/* Optional: Add hover effect */
 button[name="type"]:hover {
     opacity: 0.7;
+    transform: scale(1.1);
 }
 
-/* Centered form container */
+/* Comments */
+.comment {
+    background-color: #f9f9f9;
+    border-left: 5px solid #4CAF50;
+    padding: 15px 10px 15px 30px;
+    margin-bottom: 15px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.comment:hover {
+    background-color: #f1f1f1;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateX(5px);
+}
+
+/* Auth Forms */
+.auth-form {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.auth-form h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.auth-form label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 500;
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: #008CBA;
+    box-shadow: 0 0 5px rgba(0, 140, 186, 0.3);
+}
+
+.auth-form button {
+    width: 100%;
+    padding: 12px;
+    background: #008CBA;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.auth-form button:hover {
+    background: #005f7f;
+}
+
+.auth-form p {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+}
+
+.auth-form p a {
+    color: #008CBA;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-form p a:hover {
+    text-decoration: underline;
+}
+
+.auth-form .error {
+    background-color: #ffebee;
+    color: #dc3545;
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Error Container */
+.error-container {
+    text-align: center;
+    padding: 40px;
+}
+
+.error-container h1 {
+    color: #dc3545;
+    margin-bottom: 20px;
+}
+
+.error-container p {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 18px;
+}
+
+/* Category Button Container */
+.category-button {
+    margin: 20px 0;
+    text-align: center;
+}
+
+/* Back to Home Button */
+.back-to-home {
+    display: inline-block;
+    background-color: #008CBA;
+    color: white !important;
+    padding: 12px 24px;
+    border: 2px solid #008CBA;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.back-to-home:hover {
+    background-color: white;
+    color: #008CBA !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.back-to-home:link,
+.back-to-home:visited,
+.back-to-home:hover,
+.back-to-home:active {
+    text-decoration: none;
+}
+
+/* Form Container */
 .form-container {
     max-width: 600px;
     margin: 30px auto;
@@ -136,38 +361,23 @@ button[name="type"]:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Label styling */
-.form-container label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block;
-}
-
-/* Style the input fields */
-.form-container input[type="text"],
-.form-container textarea,
-.form-container select {
+.form-container input,
+.form-container textarea {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid #ccc;
     border-radius: 5px;
-    font-size: 16px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Increase the content box height */
-.form-container textarea {
-    height: 200px; /* Big content box */
-    resize: vertical;
+.form-container input:focus,
+.form-container textarea:focus {
+    outline: none;
+    border-color: #0077b6;
+    box-shadow: 0 0 5px rgba(0, 119, 182, 0.3);
 }
 
-/* Style the category dropdown */
-.form-container select {
-    background: white;
-    cursor: pointer;
-}
-
-/* Style the submit button */
 .form-container button {
     width: 100%;
     padding: 10px;
@@ -177,121 +387,105 @@ button[name="type"]:hover {
     border-radius: 5px;
     font-size: 18px;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: background-color 0.3s ease;
 }
 
 .form-container button:hover {
     background: #005f7f;
 }
 
-.comment {
-    background-color: #f9f9f9; /* Light background for contrast */
-    border-left: 5px solid #4CAF50; /* Green border on the left to highlight */
-    padding: 15px 10px 15px 30px; /* Increased left padding for more indentation */
-    margin-bottom: 15px;
-    font-family: Arial, sans-serif;
-    width: 100%; /* Ensure it takes up the full width of its container */
-    box-sizing: border-box; /* Prevents overflow by including padding in the width calculation */
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+        align-items: center;
+        width: 95%;
+    }
+    
+    .categories {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .auth-box {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin: 10px auto;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: fit-content;
+    }
+    
+    .auth-box p {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 8px;
+    }
+    
+    .back-to-home {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .post-meta {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .post-meta .right {
+        justify-content: center;
+    }
 }
 
-.comment small {
-    font-weight: bold;
-    color: #555;
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping if needed */
+    gap: 15px; /* Space between each checkbox-label pair */
 }
 
-.comment p {
-    color: #333;
-    line-height: 1.5;
-}
-
-.comment form {
-    margin-top: 10px;
-}
-
-.comment:hover {
-    background-color: #f1f1f1; /* Slightly darker background on hover */
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Add a shadow for depth */
-}
-
-/* Styling for the comment form */
-form textarea {
-    width: 100%; /* Make the textarea the same width as the comments */
-    height: 100px; /* Increase the height of the textarea */
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-}
-
-form button {
-    margin-top: 10px;
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
+.checkbox-container label {
+    display: flex;
+    align-items: center; /* Align checkbox with text */
+    gap: 5px; /* Space between checkbox and text */
+    font-size: 16px;
     cursor: pointer;
 }
 
-form button:hover {
-    background-color: #45a049;
+.checkbox-container input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
 }
 
-/* Styling for the Back to Home button */
-.back-to-home {
-    text-align: right; /* Align the link to the right */
-    margin-top: 10px; /* Optional: adds some space above the link */
+#content {
+    width: 100%;
+    height: 200px; /* Adjust the height as needed */
+    overflow: auto;
+    resize: none; /* Prevents manual resizing */
+    border: 1px solid #ccc;
+    padding: 10px;
+    font-size: 16px;
 }
 
-.back-to-home a {
-    text-decoration: none; /* Remove underline */
-    color: #0077b6; /* Match the theme color */
-    font-weight: bold;
+/* Comment Box Styling */
+.comment-box {
+    width: 100%;          /* Make the comment box take up full width */
+    min-width: 300px;     /* Set a minimum width */
+    max-width: 600px;     /* Optionally set a max width */
+    height: 100px;        /* Define the height */
+    overflow-x: auto;     /* Allow horizontal scrolling */
+    white-space: nowrap;  /* Prevent text wrapping */
+    resize: none;         /* Disable resizing */
+    padding: 10px;        /* Add padding for better readability */
+    border-radius: 5px;
+    border: 1px solid #ddd; /* Border style */
 }
 
-.back-to-home a:hover {
-    color: #085068; /* Darker shade for hover effect, matching the button hover color */
-}
-
-/* Style for post metadata (username, date, like/dislike) */
-.post-meta {
-    display: flex;
-   justify-content: space-between; /* Space out left and right sides */
-    align-items: center;
-
-}
-
-.left {
-    display: flex;
-    align-items: center;
-}
-
-.username, .date {
-    margin-right: 10px; /* Optional: Adjust spacing between username/date */
-}
-
-.right {
-    display: flex;
-    align-items: center;
-}
-
+/* Make the comment box fixed at the bottom */
 form {
-    margin: 0; /* Prevents extra space around the form elements */
-}
-
-button {
-    margin-left: 10px; /* Optional: Adjust spacing between like/dislike buttons */
-}
-
-/* Remove default link styles and change font size */
-a {
-    color: inherit;         /* Makes the link color inherit from its parent */
-    text-decoration: none;  /* Removes underline */
-    font-size: 0.8em;       /* Makes the font slightly smaller (adjust as needed) */
-}
-
-/* Optionally, change the color of the links to a custom color */
-a:hover {
-    color: #005294;            /* Change to any color you prefer when the link is hovered */
+    position: relative;
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 20px;
 }

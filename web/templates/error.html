@@ -12,10 +12,12 @@
         </div>
     </header>
     <div class="main-container">
-        <div class="error-container posts-feed">
-            <h1 style="color: red;">Error {{.ErrorCode}}</h1>
+        <div class="posts-feed error-container">
+            <h1>Error {{.ErrorCode}}</h1>
             <p>{{.ErrorMessage}}</p>
-            <a href="/" class="back-to-home">Go Back Home</a>
+            <div class="category-button">
+                <a href="/" class="back-to-home">Back to Home</a>
+            </div>
         </div>
     </div>
 </body>

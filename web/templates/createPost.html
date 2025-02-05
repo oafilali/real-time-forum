@@ -28,6 +28,15 @@
             <p><a href="/filter?category=Sailing">Sailing</a></p>
             <p><a href="/filter?category=Cuisine%20%26%20Food">Cuisine & Food</a></p>
             <p><a href="/filter?category=Politics">Politics</a></p>
+            {{if .SessionID}}
+            <h2>Filters:</h2>
+            <p><a href="/filter?user_created=true">My Posts</a></p>
+            <p><a href="/filter?liked=true">Liked Posts</a></p>
+            {{end}}
+
+            <div class="category-button">
+                <a href="/" class="back-to-home">Back to Home</a>
+            </div>
         </div>
     
         <!-- Posts Feed (Center) -->
@@ -41,23 +50,21 @@
                     <label for="content">Content:</label>
                     <textarea id="content" name="content" required></textarea>
             
-                    <label for="categories">Categories:</label>
-                    <input type="checkbox" name="categories" value="General">General
-                    <input type="checkbox" name="categories" value="Local News & Events">Local News & Events
-                    <input type="checkbox" name="categories" value="Viking line">Viking Line
-                    <input type="checkbox" name="categories" value="Travel">Travel
-                    <input type="checkbox" name="categories" value="Sailing">Sailing
-                    <input type="checkbox" name="categories" value="Cuisine & food">Cuisine & food
-                    <input type="checkbox" name="categories" value="Politics">Politics
-            
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" name="categories" value="General"> General</label>
+                        <label><input type="checkbox" name="categories" value="Local News & Events"> Local News & Events</label>
+                        <label><input type="checkbox" name="categories" value="Viking line"> Viking Line</label>
+                        <label><input type="checkbox" name="categories" value="Travel"> Travel</label>
+                        <label><input type="checkbox" name="categories" value="Sailing"> Sailing</label>
+                        <label><input type="checkbox" name="categories" value="Cuisine & food"> Cuisine & Food</label>
+                        <label><input type="checkbox" name="categories" value="Politics"> Politics</label>
+                    </div>
+
                     <button type="submit">Post</button>
                 </form>
             </div>
             <!-- Back to Home button placed outside the form -->
         </div>
-        <div class="back-to-home">
-        <p><a href="/">Back to Home</a></p>
-    </div>
     </div>
 </body>
 </html>

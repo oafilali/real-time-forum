@@ -28,13 +28,22 @@
             <p><a href="/filter?category=Sailing">Sailing</a></p>
             <p><a href="/filter?category=Cuisine & Food">Cuisine & Food</a></p>
             <p><a href="/filter?category=Politics">Politics</a></p>
+            {{if .SessionID}}
+            <h2>Filters:</h2>
+            <p><a href="/filter?user_created=true">My Posts</a></p>
+            <p><a href="/filter?liked=true">Liked Posts</a></p>
+            {{end}}
+
+            <div class="category-button">
+                <a href="/" class="back-to-home">Back to Home</a>
+            </div>
         </div>
 
         <div class="posts-feed">
             <div class="post" id="post-{{.Post.ID}}">
                 <h2>Category: {{.Post.Category}}</h2>
                 <h3>{{.Post.Title}}</h3>
-                <p><small>{{.Post.Username}}:</small></p>
+                <p>{{.Post.Username}}:</p>
                 <p>{{.Post.Content}}</p>
 
                 <!-- Like/Dislike Buttons for Post -->
@@ -52,7 +61,7 @@
                 <h3>Comments</h3>
                 {{range .Post.Comments}}
                 <div class="comment">
-                    <small>{{.Username}}:</small>
+                    <p>{{.Username}}:</p>
                     <p>{{.Content}}</p>
 
                     <!-- Like/Dislike Buttons for Comments -->
@@ -75,17 +84,13 @@
                 {{if .SessionID}}
                 <form action="/comment" method="POST">
                     <input type="hidden" name="post_id" value="{{.Post.ID}}">
-                    <textarea name="content" placeholder="Add a comment..." required></textarea>
+                    <textarea name="content" class="comment-box" placeholder="Add a comment..." required></textarea>
                     <button type="submit">Add Comment</button>
                 </form>
                 {{else}}
                 <p>You must be logged in to add a comment. <a href="/login">Login</a></p>
                 {{end}}
             </div>
-        </div>
-
-        <div class="back-to-home">
-            <p><a href="/">Back to Home</a></p>
         </div>
     </div>
 </body>

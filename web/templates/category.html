@@ -34,14 +34,20 @@
             <p><a href="/filter?user_created=true">My Posts</a></p>
             <p><a href="/filter?liked=true">Liked Posts</a></p>
             {{end}}
+
+            <div class="category-button">
+                <a href="/" class="back-to-home">Back to Home</a>
+            </div>
         </div>
     
         <div class="posts-feed">
             <h1>{{.Category}}</h1>
             {{if .Posts}}
-                {{range .Posts}}
-                <div id="{{.ID}}">
-                    <p><a href="/post?id={{.ID}}">{{.Title}}</a></p>
+            {{range .Posts}}
+                <div class="post">
+                    <div id="{{.ID}}">
+                        <h2><a href="/post?id={{.ID}}">{{.Title}}</a></h2>
+                    </div>
                 </div>
                 {{end}}
             {{else}}
