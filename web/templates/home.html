@@ -32,11 +32,12 @@
         </div>
 
         <div class="posts-feed">
+            <h2>All posts</h2>
             {{range .Posts}}
                 <div class="post">
-                    <h2>{{.Title}}</h2>
+                    <h2><a href="/post?id={{.ID}}">{{.Title}}</a></h2>
                     <p>{{.Content}}</p>
-                    <p>Posted by {{.Username}} on {{.Date}}</p>
+                    <p>{{.Username}}: {{.Date}}</p>
                 </div>
             {{else}}
                 <p>No posts available.</p>
