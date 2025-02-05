@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error - Åland Forum</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Åland Forum</h1>
+        <div class="auth-box">
+            <a href="/">Home</a>
+        </div>
+    </header>
+    <div class="main-container">
+        <div class="error-container posts-feed">
+            <h1 style="color: red;">Error {{.ErrorCode}}</h1>
+            <p>{{.ErrorMessage}}</p>
+            <a href="/" class="back-to-home">Go Back Home</a>
+        </div>
+    </div>
+</body>
+</html>

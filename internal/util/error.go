@@ -1,14 +1,15 @@
 package util
 
 import (
+	"forum/internal/handler"
 	"log"
 	"net/http"
 )
 
-func ErrorCheckHandlers(w http.ResponseWriter, msg string, err error, code int) bool {
+func ErrorCheckHandlers(w http.ResponseWriter, r *http.Request, msg string, err error, code int) bool {
 	if err != nil {
-		http.Error(w, msg, code)
 		log.Println(msg, err)
+		handler.ErrorHandler(w, r, code, msg)
 		return true
 	}
 	return false

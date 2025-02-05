@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Home</title>
+    <title>Error - Åland Forum</title>
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
@@ -33,27 +33,9 @@
         </div>
 
         <div class="posts-feed">
-            <h2>All posts:</h2>
-            {{if .Posts}}
-            {{range .Posts}}
-            <div id="{{.ID}}">
-                <p><a href="/post?id={{.ID}}">{{.Title}}</a></p>
-                <!-- Like/Dislike Buttons for Posts -->
-                <form action="/like" method="POST" style="display:inline;">
-                    <input type="hidden" name="item_id" value="{{.ID}}">
-                    <input type="hidden" name="is_comment" value="false">
-                    <button type="submit" name="type" value="like">👍 {{.Likes}}</button>
-                </form>
-                <form action="/like" method="POST" style="display:inline;">
-                    <input type="hidden" name="item_id" value="{{.ID}}">
-                    <input type="hidden" name="is_comment" value="false">
-                    <button type="submit" name="type" value="dislike">👎 {{.Dislikes}}</button>
-                </form>
-            </div>
-            {{end}}
-            {{else}}
-            <p>No posts yet.</p>
-            {{end}}
+            <h1 style="color: red;">Error {{.ErrorCode}}</h1>
+            <p>{{.ErrorMessage}}</p>
+            <a href="/" class="back-to-home">Go Back Home</a>
         </div>
     </div>
 </body>

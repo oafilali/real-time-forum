@@ -26,7 +26,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		allPosts, err := post.FetchPosts()
-		if util.ErrorCheckHandlers(w, "Failed to load posts", err, http.StatusInternalServerError) {
+		if util.ErrorCheckHandlers(w, r, "Failed to load posts", err, http.StatusInternalServerError) {
 			return
 		}
 
@@ -37,7 +37,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		err = util.Templates.ExecuteTemplate(w, "home.html", data)
-		if util.ErrorCheckHandlers(w, "Failed to render the template", err, http.StatusInternalServerError) {
+		if util.ErrorCheckHandlers(w, r, "Failed to render the template", err, http.StatusInternalServerError) {
 			return
 		}
 
@@ -66,12 +66,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Hash the password
 		hashed, err := user.HashPassword(password)
-		if util.ErrorCheckHandlers(w, "Password hashing failed", err, http.StatusInternalServerError) {
+		if util.ErrorCheckHandlers(w, r, "Password hashing failed", err, http.StatusInternalServerError) {
 			return
 		}
 
 		// Save user to the database
-		if err := user.SaveUser(username, email, hashed); util.ErrorCheckHandlers(w, "User registration failed", err, http.StatusInternalServerError) {
+		if err := user.SaveUser(username, email, hashed); util.ErrorCheckHandlers(w, r, "User registration failed", err, http.StatusInternalServerError) {
 			return
 		}
 
@@ -137,7 +137,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		userID, err := session.GetUserIDFromSession(r)
-		if util.ErrorCheckHandlers(w, "Invalid session", err, http.StatusUnauthorized) {
+		if util.ErrorCheckHandlers(w, r, "Invalid session", err, http.StatusUnauthorized) {
 			return
 		}
 
@@ -146,12 +146,12 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		categories := strings.Join(r.Form["categories"], ", ")
 
 		// Insert the post into the database
-		if err := post.CreatePost(userID, title, content, categories); util.ErrorCheckHandlers(w, "Post creation failed", err, http.StatusInternalServerError) {
+		if err := post.CreatePost(userID, title, content, categories); util.ErrorCheckHandlers(w, r, "Post creation failed", err, http.StatusInternalServerError) {
 			return
 		}
 
 		id, err := post.GetPostId()
-		if util.ErrorCheckHandlers(w, "Database issue", err, http.StatusInternalServerError) {
+		if util.ErrorCheckHandlers(w, r, "Database issue", err, http.StatusInternalServerError) {
 			return
 		}
 
@@ -176,12 +176,12 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		tmpl, err := template.ParseFiles("./web/templates/createPost.html")
-		if util.ErrorCheckHandlers(w, "Failed to parse the template", err, http.StatusInternalServerError) {
+		if util.ErrorCheckHandlers(w, r, "Failed to parse the template", err, http.StatusInternalServerError) {
 			return
 		}
 
 		err = tmpl.Execute(w, data)
-		if util.ErrorCheckHandlers(w, "Failed to render the template", err, http.StatusInternalServerError) {
+		if util.ErrorCheckHandlers(w, r, "Failed to render the template", err, http.StatusInternalServerError) {
 			return
 		}
 	}
@@ -197,18 +197,18 @@ func ViewPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	post, err := post.FetchPost(postID)
-	if util.ErrorCheckHandlers(w, "Failed to load the post", err, http.StatusInternalServerError) {
+	if util.ErrorCheckHandlers(w, r, "Failed to load the post", err, http.StatusInternalServerError) {
 		return
 	}
 
 	post.Likes, post.Dislikes, err = reaction.FetchReactionsNumber(post.ID, false)
-	if util.ErrorCheckHandlers(w, "Failed to load the reactions number", err, http.StatusInternalServerError) {
+	if util.ErrorCheckHandlers(w, r, "Failed to load the reactions number", err, http.StatusInternalServerError) {
 		return
 	}
 
 	// Fetch comments for this post
 	post.Comments, err = comment.FetchCommentsForPost(post.ID)
-	if util.ErrorCheckHandlers(w, "Failed to load the comments", err, http.StatusInternalServerError) {
+	if util.ErrorCheckHandlers(w, r, "Failed to load the comments", err, http.StatusInternalServerError) {
 		return
 	}
 
@@ -235,13 +235,13 @@ func ViewPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse the template
 	tmpl, err := template.ParseFiles("./web/templates/post.html")
-	if util.ErrorCheckHandlers(w, "Failed to parse the template", err, http.StatusInternalServerError) {
+	if util.ErrorCheckHandlers(w, r, "Failed to parse the template", err, http.StatusInternalServerError) {
 		return
 	}
 
 	// Execute the template, passing in the post data
 	err = tmpl.Execute(w, postPageData)
-	if util.ErrorCheckHandlers(w, "Failed to render the template", err, http.StatusInternalServerError) {
+	if util.ErrorCheckHandlers(w, r, "Failed to render the template", err, http.StatusInternalServerError) {
 		return
 	}
 }
@@ -254,7 +254,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID, err := session.GetUserIDFromSession(r)
-	if util.ErrorCheckHandlers(w, "Invalid session", err, http.StatusUnauthorized) {
+	if util.ErrorCheckHandlers(w, r, "Invalid session", err, http.StatusUnauthorized) {
 		return
 	}
 
@@ -270,7 +270,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := comment.AddComment(sessionID, postID, content); util.ErrorCheckHandlers(w, "Failed to add the comment", err, http.StatusInternalServerError) {
+	if err := comment.AddComment(sessionID, postID, content); util.ErrorCheckHandlers(w, r, "Failed to add the comment", err, http.StatusInternalServerError) {
 		return
 	}
 
@@ -290,8 +290,7 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 
-	if util.ErrorCheckHandlers(w, "Invalid session", err, http.StatusUnauthorized) {
-
+	if util.ErrorCheckHandlers(w, r, "Invalid session", err, http.StatusUnauthorized) {
 		return
 	}
 
@@ -304,7 +303,7 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 	isComment := r.FormValue("is_comment") == "true"
 	reactionType := r.FormValue("type") // "like" or "dislike"
 
-	if err := reaction.LikeItem(sessionID, itemID, isComment, reactionType); util.ErrorCheckHandlers(w, "Failed to like the item", err, http.StatusInternalServerError) {
+	if err := reaction.LikeItem(sessionID, itemID, isComment, reactionType); util.ErrorCheckHandlers(w, r, "Failed to like the item", err, http.StatusInternalServerError) {
 		return
 	}
 
@@ -314,11 +313,11 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 // logoutHandler handles user logout
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_id")
-	if util.ErrorCheckHandlers(w, "No active session", err, http.StatusUnauthorized) {
+	if util.ErrorCheckHandlers(w, r, "No active session", err, http.StatusUnauthorized) {
 		return
 	}
 
-	if err := session.DeleteSession(cookie.Value); util.ErrorCheckHandlers(w, "Logout failed", err, http.StatusInternalServerError) {
+	if err := session.DeleteSession(cookie.Value); util.ErrorCheckHandlers(w, r, "Logout failed", err, http.StatusInternalServerError) {
 		return
 	}
 
@@ -366,8 +365,7 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid filter request", http.StatusBadRequest)
 		return
 	}
-	if err != nil {
-		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+	if util.ErrorCheckHandlers(w, r, "Failed to fetch posts", err, http.StatusInternalServerError) {
 		return
 	}
 	defer rows.Close()
@@ -385,8 +383,8 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 			Title    string
 			Category string
 		}
-		if err := rows.Scan(&post.ID, &post.Title, &post.Category); err != nil {
-			http.Error(w, "Failed to scan post", http.StatusInternalServerError)
+		err = rows.Scan(&post.ID, &post.Title, &post.Category)
+		if util.ErrorCheckHandlers(w, r, "Failed to scan post", err, http.StatusInternalServerError) {
 			return
 		}
 		posts = append(posts, post)
@@ -411,12 +409,28 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Render the template
 	tmpl, err := template.ParseFiles("./web/templates/category.html")
-	if err != nil {
-		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
+	if util.ErrorCheckHandlers(w, r, "Failed to parse template", err, http.StatusInternalServerError) {
 		return
 	}
 
-	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, "Failed to execute template", http.StatusInternalServerError)
+	err = tmpl.Execute(w, data)
+	if util.ErrorCheckHandlers(w, r, "Failed to execute template", err, http.StatusInternalServerError) {
+		return
+	}
+}
+
+func ErrorHandler(w http.ResponseWriter, r *http.Request, errorCode int, errorMessage string) {
+	w.WriteHeader(errorCode)
+	data := struct {
+		ErrorCode    int
+		ErrorMessage string
+	}{
+		ErrorCode:    errorCode,
+		ErrorMessage: errorMessage,
+	}
+
+	err := util.Templates.ExecuteTemplate(w, "error.html", data)
+	if util.ErrorCheckHandlers(w, r, "Error loading the page", err, http.StatusInternalServerError) {
+		return
 	}
 }
