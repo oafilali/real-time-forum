@@ -13,6 +13,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		email := r.FormValue("email")
 		password := r.FormValue("password")
 
+		// Validate email format
+		if !util.IsValidEmail(email) {
+			http.Redirect(w, r, "/register?error=Invalid%20email%20format", http.StatusFound)
+			return
+		}
+
 		// Check if username already exists
 		if user.CheckUsernameExists(w, r, username) {
 			http.Redirect(w, r, "/register?error=Username%20already%20taken", http.StatusFound)

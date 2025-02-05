@@ -3,6 +3,7 @@ package handler
 import (
 	"forum/internal/session"
 	"forum/internal/user"
+	"forum/internal/util"
 	"html/template"
 	"log"
 	"net/http"
@@ -12,6 +13,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		email := r.FormValue("email")
 		password := r.FormValue("password")
+
+		// Validate email format
+		if !util.IsValidEmail(email) {
+			http.Redirect(w, r, "/login?error=Invalid%20email%20format", http.StatusFound)
+			return
+		}
 
 		// Authenticate user
 		userID, err := user.AuthenticateUser(email, password)
