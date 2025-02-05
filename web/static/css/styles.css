@@ -75,7 +75,7 @@ header h1 {
     display: block;
     padding: 8px 12px;
     text-decoration: none;
-    color: #0077b6;
+    color: #106b9c;
     font-weight: bold;
     border-radius: 5px;
     transition: background-color 0.3s, box-shadow 0.3s;
@@ -251,5 +251,47 @@ form button:hover {
 }
 
 .back-to-home a:hover {
-    color: #005f7f; /* Darker shade for hover effect, matching the button hover color */
+    color: #085068; /* Darker shade for hover effect, matching the button hover color */
+}
+
+/* Style for post metadata (username, date, like/dislike) */
+.post-meta {
+    display: flex;
+   justify-content: space-between; /* Space out left and right sides */
+    align-items: center;
+
+}
+
+.left {
+    display: flex;
+    align-items: center;
+}
+
+.username, .date {
+    margin-right: 10px; /* Optional: Adjust spacing between username/date */
+}
+
+.right {
+    display: flex;
+    align-items: center;
+}
+
+form {
+    margin: 0; /* Prevents extra space around the form elements */
+}
+
+button {
+    margin-left: 10px; /* Optional: Adjust spacing between like/dislike buttons */
+}
+
+/* Remove default link styles and change font size */
+a {
+    color: inherit;         /* Makes the link color inherit from its parent */
+    text-decoration: none;  /* Removes underline */
+    font-size: 0.8em;       /* Makes the font slightly smaller (adjust as needed) */
+}
+
+/* Optionally, change the color of the links to a custom color */
+a:hover {
+    color: #005294;            /* Change to any color you prefer when the link is hovered */
 }

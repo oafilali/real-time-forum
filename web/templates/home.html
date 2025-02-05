@@ -2,7 +2,8 @@
 <html>
 <head>
     <title>Åland Forum</title>
-    <link rel="stylesheet" href="/static/css/styles.css"></head>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
 <body>
     <header>
         <h1>Åland Forum</h1>
@@ -37,7 +38,25 @@
                 <div class="post">
                     <h2><a href="/post?id={{.ID}}">{{.Title}}</a></h2>
                     <p>{{.Content}}</p>
-                    <p>{{.Username}}: {{.Date}}</p>
+                    <div class="post-meta">
+                        <div class="left">
+                            <span class="username">{{.Username}}</span>
+                            <span class="date">{{.Date}}</span>
+                        </div>
+                        <!-- Like/Dislike Buttons for Post -->
+                        <div class="right">
+                            <form action="/like" method="POST" style="display:inline;">
+                                <input type="hidden" name="item_id" value="{{.ID}}">
+                                <input type="hidden" name="is_comment" value="false">
+                                <button type="submit" name="type" value="like">👍 {{.Likes}}</button>
+                            </form>
+                            <form action="/like" method="POST" style="display:inline;">
+                                <input type="hidden" name="item_id" value="{{.ID}}">
+                                <input type="hidden" name="is_comment" value="false">
+                                <button type="submit" name="type" value="dislike">👎 {{.Dislikes}}</button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             {{else}}
                 <p>No posts available.</p>
@@ -46,3 +65,4 @@
     </div>
 </body>
 </html>
+
