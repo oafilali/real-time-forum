@@ -23,6 +23,42 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		content := r.FormValue("content")
 		categories := strings.Join(r.Form["categories"], ", ")
 
+		if title == "" || content == "" {
+			if util.ErrorCheckHandlers(w, r, "Post cannot be empty", fmt.Errorf("Post cannot be empty"), http.StatusInternalServerError) {
+				return
+			}
+			return
+		}
+
+		categoriesList := []string{
+			"General",
+			"Local News & Events",
+			"Viking line",
+			"Travel",
+			"Sailing",
+			"Cuisine & food",
+			"Politics"}
+
+		for _, userCategory := range r.Form["categories"] {
+			catValid := false
+			for _, categoryItem := range categoriesList {
+				if categoryItem == userCategory {
+					catValid = true
+					break
+				}
+			}
+			if !catValid {
+				if util.ErrorCheckHandlers(w, r, "Invalid category", fmt.Errorf("invalid category"), http.StatusInternalServerError) {
+					return
+				}
+				return
+			}
+		}
+
+		if len(categories) == 0 {
+			categories = "General"
+		}
+
 		// Insert the post into the database
 		if err := post.CreatePost(userID, title, content, categories); util.ErrorCheckHandlers(w, r, "Post creation failed", err, http.StatusInternalServerError) {
 			return

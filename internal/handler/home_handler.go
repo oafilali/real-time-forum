@@ -21,6 +21,9 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		if util.ErrorCheckHandlers(w, r, "Failed to load posts", err, http.StatusInternalServerError) {
 			return
 		}
+		if len(allPosts) > 5 {
+			allPosts = allPosts[:5]
+		}
 
 		data := model.Data{
 			Posts:     allPosts,

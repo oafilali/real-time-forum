@@ -37,7 +37,8 @@ func FetchPosts() ([]model.HomePageData, error) {
 		FROM posts p
 		LEFT JOIN users u ON p.user_id = u.id
 		LEFT JOIN reactions r ON p.id = r.post_id AND r.comment_id IS NULL
-		GROUP BY p.id, p.title, p.content, u.username, p.date;
+		GROUP BY p.id, p.title, p.content, u.username, p.date
+		ORDER BY likes DESC;
 	`)
 	if err != nil {
 		log.Println("Error fetching posts:", err)
