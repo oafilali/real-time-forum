@@ -3,6 +3,7 @@ package post
 import (
 	"forum/internal/database"
 	"forum/internal/model"
+	"log"
 )
 
 func CreatePost(userID int, title, content, category string) error {
@@ -29,17 +30,18 @@ func FetchPosts() ([]model.HomePageData, error) {
 			p.id, 
 			p.title, 
 			p.content, 
-			u.username, 
+			COALESCE(u.username, 'Unknown') AS username,
 			COALESCE(SUM(CASE WHEN r.type = 'like' THEN 1 ELSE 0 END), 0) AS likes, 
 			COALESCE(SUM(CASE WHEN r.type = 'dislike' THEN 1 ELSE 0 END), 0) AS dislikes,
 			p.date
 		FROM posts p
-		JOIN users u ON p.user_id = u.id
+		LEFT JOIN users u ON p.user_id = u.id
 		LEFT JOIN reactions r ON p.id = r.post_id AND r.comment_id IS NULL
 		GROUP BY p.id, p.title, p.content, u.username, p.date;
 	`)
 	if err != nil {
-		return nil, err
+		log.Println("Error fetching posts:", err)
+		return []model.HomePageData{}, nil // Return empty slice instead of error
 	}
 	defer postRows.Close()
 
@@ -49,7 +51,8 @@ func FetchPosts() ([]model.HomePageData, error) {
 		var post model.HomePageData
 		err := postRows.Scan(&post.ID, &post.Title, &post.Content, &post.Username, &post.Likes, &post.Dislikes, &post.Date)
 		if err != nil {
-			return nil, err
+			log.Println("Error scanning post row:", err)
+			continue // Skip problematic rows instead of failing
 		}
 		allPosts = append(allPosts, post)
 	}
@@ -75,7 +78,7 @@ func FetchPost(postID string) (model.Post, error) {
 	username := ""
 	err = database.Db.QueryRow("SELECT username FROM users WHERE id= ?", post.UserID).Scan(&username)
 	if err != nil {
-		return model.Post{}, err
+		username = "Unknown"
 	}
 	post.Username = username
 	return post, err
