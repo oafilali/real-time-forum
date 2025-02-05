@@ -46,16 +46,20 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// registerHandler handles user registration
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		username := r.FormValue("username")
 		email := r.FormValue("email")
 		password := r.FormValue("password")
 
+		// Check if username already exists
+		if user.CheckUsernameExists(w, username) {
+			http.Redirect(w, r, "/register?error=Username%20already%20taken", http.StatusFound)
+			return
+		}
+
 		// Check if email already exists
 		if user.CheckEmailExists(w, email) {
-			// Redirect to the register page with an error message in the query string
 			http.Redirect(w, r, "/register?error=Email%20already%20taken", http.StatusFound)
 			return
 		}
@@ -75,7 +79,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 	} else {
 		// Handle GET request for the register page
-		// Pass any potential error messages to the template
 		errorMessage := r.URL.Query().Get("error")
 		data := struct {
 			ErrorMessage string

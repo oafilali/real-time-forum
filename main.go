@@ -23,8 +23,8 @@ func startServer() {
 	registerHandlers()
 	serveStaticFiles()
 	util.LoadTemplates() // Load all templates at startup
-	log.Println("Server starting on :8088")
-	log.Fatal(http.ListenAndServe(":8088", nil))
+	log.Println("Server starting on :8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func initializeDatabase() {
