@@ -24,7 +24,7 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		categories := strings.Join(r.Form["categories"], ", ")
 
 		if title == "" || content == "" {
-			if util.ErrorCheckHandlers(w, r, "Post cannot be empty", fmt.Errorf("Post cannot be empty"), http.StatusInternalServerError) {
+			if util.ErrorCheckHandlers(w, r, "Post cannot be empty", fmt.Errorf("post cannot be empty"), http.StatusInternalServerError) {
 				return
 			}
 			return
