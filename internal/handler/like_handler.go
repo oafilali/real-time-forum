@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"forum/internal/model"
 	"forum/internal/reaction"
 	"forum/internal/session"
 	"forum/internal/util"
@@ -10,23 +11,19 @@ import (
 // likeHandler handles liking or disliking a post or comment
 func LikeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		util.ExecuteJSON(w, model.MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
 		return
 	}
 
 	sessionID, err := session.GetUserIDFromSession(r)
-
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
-
-	if util.ErrorCheckHandlers(w, r, "Invalid session", err, http.StatusUnauthorized) {
+		util.ExecuteJSON(w, model.MsgData{"Invalid session, please log in"}, http.StatusUnauthorized)
 		return
 	}
 
 	itemID := r.FormValue("item_id")
 	if itemID == "" {
-		http.Error(w, "Item ID is missing", http.StatusBadRequest)
+		util.ExecuteJSON(w, model.MsgData{"Item ID is missing"}, http.StatusBadRequest)
 		return
 	}
 
@@ -37,5 +34,5 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusFound)
+	util.ExecuteJSON(w, model.MsgData{"Reaction recorded successfully"}, http.StatusOK)
 }

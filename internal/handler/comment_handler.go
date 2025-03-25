@@ -1,17 +1,21 @@
 package handler
 
 import (
-	"fmt"
 	"forum/internal/comment"
+	"forum/internal/model"
 	"forum/internal/session"
 	"forum/internal/util"
 	"net/http"
 )
 
+var ExecuteJSON = util.ExecuteJSON;
+type MsgData = model.MsgData;
+
 // commentHandler handles adding a comment to a post
+
 func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		ExecuteJSON(w, MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -22,13 +26,13 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 
 	postID := r.FormValue("post_id")
 	if postID == "" {
-		http.Error(w, "Post ID is missing", http.StatusBadRequest)
+		util.ExecuteJSON(w, model.MsgData{"Post ID is missing"}, http.StatusBadRequest)
 		return
 	}
 
 	content := r.FormValue("content")
 	if content == "" {
-		http.Error(w, "Content is missing", http.StatusBadRequest)
+		util.ExecuteJSON(w, model.MsgData{"Content is missing"}, http.StatusBadRequest)
 		return
 	}
 
@@ -36,5 +40,6 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/post?id=%s", postID), http.StatusFound)
+	// Send success response
+	util.ExecuteJSON(w, model.MsgData{"Comment added successfully"}, http.StatusOK)
 }

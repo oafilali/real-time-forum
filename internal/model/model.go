@@ -42,3 +42,13 @@ type Data struct {
 	SessionID int
 	Username  string
 }
+
+type MsgData struct {
+	Message string `json:"message"`
+}
+
+type PostData struct {
+	ID       int    `json:"id"`
+	Title    string `json:"title"`
+	Category string `json:"category"`
+}

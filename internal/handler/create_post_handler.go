@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"forum/internal/database"
+	"forum/internal/model"
 	"forum/internal/post"
 	"forum/internal/session"
 	"forum/internal/util"
@@ -91,6 +92,10 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 
 		tmpl, err := template.ParseFiles("./web/templates/createPost.html")
 		if util.ErrorCheckHandlers(w, r, "Failed to parse the template", err, http.StatusInternalServerError) {
+			return
+		}
+		if err != nil {
+			util.ExecuteJSON(w, model.MsgData{"Failed to parse the template"}, http.StatusInternalServerError)
 			return
 		}
 
