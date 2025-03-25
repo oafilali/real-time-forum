@@ -1,1 +1,0 @@
-{"chunk":1,"numChunks":3,"fileHash":"aUEYqi00kJ9RXj4r8XrQFP6l6kGK9v8XCWW6P05BGn0=","filePath":"internal/handler/view_posts_handler.go","content":"package handler\nfunc ViewPostHandler(w http.ResponseWriter, r *http.Request) {"}

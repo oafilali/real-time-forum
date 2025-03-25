@@ -1,1 +1,0 @@
-{"chunk":0,"numChunks":4,"fileHash":"qy21x11i4aF/md6OY3+v2DF8XKAPDwT+7tyxBtV2C/Q=","filePath":"internal/handler/filter_handler.go","content":"package handler\nimport (\n\t\"database/sql\"\n\t\"forum/internal/database\"\n\t\"forum/internal/session\"\n\t\"forum/internal/util\"\n\t\"html/template\"\n\t\"net/http\"\n)\n// filterHandler handles filtering posts by category"}

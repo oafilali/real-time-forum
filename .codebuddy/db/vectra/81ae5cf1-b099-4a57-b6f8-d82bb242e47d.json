@@ -1,1 +1,0 @@
-{"chunk":0,"numChunks":1,"fileHash":"KW05ad2nxf4jXs94n5Ldy127MTliJDGIhLojtTpRMj4=","filePath":"run.sh","content":"#!/bin/bash\n# Build the Docker image\ndocker image build -f Dockerfile -t forumimg .\n# Run the Docker container\ndocker container run -p 8080:8080 --detach --name forumcontainer forumimg"}

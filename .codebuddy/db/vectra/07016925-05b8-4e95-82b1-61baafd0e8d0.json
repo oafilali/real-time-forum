@@ -1,1 +1,0 @@
-{"chunk":0,"numChunks":1,"fileHash":"azZ7qzjd/+9AsScBtLziC4jzUFAwIEBHxfAT8U1atQI=","filePath":"go.mod","content":"module forum\n\ngo 1.22.6\n\nrequire (\n\tgithub.com/gofrs/uuid v4.4.0+incompatible\n\tgithub.com/mattn/go-sqlite3 v1.14.24\n\tgolang.org/x/crypto v0.32.0\n)\n"}

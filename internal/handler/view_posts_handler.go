@@ -8,7 +8,6 @@ import (
 	"forum/internal/post"
 	"forum/internal/reaction"
 	"forum/internal/session"
-	"forum/internal/util"
 	"net/http"
 )
 
@@ -26,23 +25,26 @@ func ViewPostHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the post ID from the URL query parameter
 	postID := r.URL.Query().Get("id")
 	if postID == "" {
-		executeJSON(w, MsgData{"Missing PostID!"}, http.StatusBadRequest)
+		executeJSON(w, MsgData{"Post ID is missing"}, http.StatusBadRequest)
 		return
 	}
 
 	post, err := post.FetchPost(postID)
-	if util.ErrorCheckHandlers(w, r, "Failed to load the post", err, http.StatusInternalServerError) {
+	if err != nil {
+		executeJSON(w, MsgData{"Failed to load the post"}, http.StatusInternalServerError)
 		return
 	}
 
 	post.Likes, post.Dislikes, err = reaction.FetchReactionsNumber(post.ID, false)
-	if util.ErrorCheckHandlers(w, r, "Failed to load the reactions number", err, http.StatusInternalServerError) {
+	if err != nil {
+		executeJSON(w, MsgData{"Failed to load the reactions number"}, http.StatusInternalServerError)
 		return
 	}
 
 	// Fetch comments for this post
 	post.Comments, err = comment.FetchCommentsForPost(post.ID)
-	if util.ErrorCheckHandlers(w, r, "Failed to load the comments", err, http.StatusInternalServerError) {
+	if err != nil {
+		executeJSON(w, MsgData{"Failed to load the comments"}, http.StatusInternalServerError)
 		return
 	}
 

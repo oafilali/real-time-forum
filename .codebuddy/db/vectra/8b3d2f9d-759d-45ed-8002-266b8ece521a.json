@@ -1,1 +1,0 @@
-{"chunk":0,"numChunks":1,"fileHash":"JiZJT4oy07YILg1dyLvqP4KXpuBGzr9KKlquLsxKLbM=","filePath":"clear.sh","content":"#!/bin/bash\n\n# Removes stopped containers, unused networks, dangling imgs, unused build cache\ndocker system prune -f \n\n# Remove -a all images without at least one container associated\ndocker image prune -a -f\n"}
