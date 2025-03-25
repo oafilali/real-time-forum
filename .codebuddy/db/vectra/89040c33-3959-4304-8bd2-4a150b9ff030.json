@@ -1,0 +1,1 @@
+{"chunk":1,"numChunks":4,"fileHash":"qy21x11i4aF/md6OY3+v2DF8XKAPDwT+7tyxBtV2C/Q=","filePath":"internal/handler/filter_handler.go","content":"package handler\nfunc FilterHandler(w http.ResponseWriter, r *http.Request) {"}

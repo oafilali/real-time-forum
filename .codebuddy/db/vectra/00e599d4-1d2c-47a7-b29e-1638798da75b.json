@@ -1,0 +1,1 @@
+{"chunk":5,"numChunks":6,"fileHash":"gwIGpW0Uz8yvXUuu674CmvkNU82PcIitokSH4fm+Olo=","filePath":"internal/handler/create_post_handler.go","content":".Redirect(w, r, fmt.Sprintf(\"/post?id=%d\", id), http.StatusFound)\n\t} else {"}

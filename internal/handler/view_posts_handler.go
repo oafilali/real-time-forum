@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"forum/internal/comment"
 	"forum/internal/database"
 	"forum/internal/model"
@@ -8,15 +9,24 @@ import (
 	"forum/internal/reaction"
 	"forum/internal/session"
 	"forum/internal/util"
-	"html/template"
 	"net/http"
 )
+
+type MsgData struct {
+	Message string `json:"message"`
+}
+
+func executeJSON(w http.ResponseWriter, data interface{}, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(data)
+}
 
 func ViewPostHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the post ID from the URL query parameter
 	postID := r.URL.Query().Get("id")
 	if postID == "" {
-		http.Error(w, "Post ID is missing", http.StatusBadRequest)
+		executeJSON(w, MsgData{"Missing PostID!"}, http.StatusBadRequest)
 		return
 	}
 
@@ -57,15 +67,5 @@ func ViewPostHandler(w http.ResponseWriter, r *http.Request) {
 		Username:  username,
 	}
 
-	// Parse the template
-	tmpl, err := template.ParseFiles("./web/templates/post.html")
-	if util.ErrorCheckHandlers(w, r, "Failed to parse the template", err, http.StatusInternalServerError) {
-		return
-	}
-
-	// Execute the template, passing in the post data
-	err = tmpl.Execute(w, postPageData)
-	if util.ErrorCheckHandlers(w, r, "Failed to render the template", err, http.StatusInternalServerError) {
-		return
-	}
+	executeJSON(w, postPageData, http.StatusOK)
 }

@@ -1,0 +1,1 @@
+{"chunk":1,"numChunks":6,"fileHash":"s+fOgBIh2gdL99qQIVgHIlex/r5UDD4wRd9TnepZnb0=","filePath":"web/templates/post.html","content":"<!DOCTYPE html>\n<html>\n<head>\n    <title>{{.Post.Title}}</title>\n    <link rel=\"stylesheet\" href=\"/static/css/styles.css\">\n</head>"}
