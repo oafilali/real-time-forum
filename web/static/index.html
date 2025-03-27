@@ -1,29 +1,33 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Åland Forum</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
     <header>
-        <h1>Åland Forum</h1>
-        <div id="auth-box" class="auth-box">
-            <!-- Auth box content will be rendered by JS -->
-        </div>
-    </header>    
+      <h1>Åland Forum</h1>
+      <div id="auth-box" class="auth-box">
+        <!-- Auth box content will be rendered by JS -->
+      </div>
+    </header>
     <div class="main-container">
-        <div id="sidebar" class="categories">
-            <!-- Sidebar content will be rendered by JS -->
-        </div>
-    
-        <div id="content" class="posts-feed">
-            <!-- Main content will be rendered by JS -->
-            <div class="loading">Loading...</div>
-        </div>
+      <div id="sidebar" class="categories">
+        <!-- Sidebar content will be rendered by JS -->
+      </div>
+
+      <div id="content" class="posts-feed">
+        <!-- Main content will be rendered by JS -->
+        <div class="loading">Loading content...</div>
+      </div>
     </div>
-    
+
     <!-- Main application script -->
     <script src="/static/js/app.js"></script>
-</body>
+  </body>
 </html>

@@ -191,26 +191,7 @@ async function fetchPosts() {
     if (state.posts.length > 0) {
       contentElement.innerHTML = `
             <h2>All posts</h2>
-            ${state.posts
-              .map(
-                (post) => `
-              <div class="post">
-                <h2><a href="/post?id=${post.ID}" data-navigate>${post.Title}</a></h2>
-                <p>${post.Content}</p>
-                <div class="post-meta">
-                  <div class="left">
-                    <span class="username">${post.Username}</span>
-                    <span class="date">${post.Date}</span>
-                  </div>
-                  <div class="right">
-                    <button class="like-button" data-id="${post.ID}" data-type="like" data-for="post">👍 ${post.Likes}</button>
-                    <button class="dislike-button" data-id="${post.ID}" data-type="dislike" data-for="post">👎 ${post.Dislikes}</button>
-                  </div>
-                </div>
-              </div>
-            `
-              )
-              .join("")}
+            ${state.posts.map((post) => getPostTemplate(post)).join("")}
           `;
 
       // Add event listeners for like/dislike buttons
@@ -226,6 +207,34 @@ async function fetchPosts() {
     contentElement.innerHTML =
       '<div class="error">Failed to load posts. Please try again later.</div>';
   }
+}
+
+// Template for posts in the feed
+function getPostTemplate(post) {
+  return `
+      <div class="post">
+        <h2><a href="/post?id=${post.ID}" data-navigate>${post.Title}</a></h2>
+        <p>${post.Content}</p>
+        <div class="post-meta">
+          <div class="left">
+            <span class="username">Posted by: <strong>${
+              post.Username
+            }</strong></span>
+            <span class="date">Date: ${post.Date}</span>
+          </div>
+          <div class="right">
+            <button class="like-button" data-id="${
+              post.ID
+            }" data-type="like" data-for="post">👍 ${post.Likes || 0}</button>
+            <button class="dislike-button" data-id="${
+              post.ID
+            }" data-type="dislike" data-for="post">👎 ${
+    post.Dislikes || 0
+  }</button>
+          </div>
+        </div>
+      </div>
+    `;
 }
 
 // Fetch a single post
@@ -264,62 +273,7 @@ async function fetchSinglePost(postId) {
       return;
     }
 
-    contentElement.innerHTML = `
-          <div class="post" id="post-${state.currentPost.ID}">
-            <h2>Category: ${state.currentPost.Category}</h2>
-            <h3>${state.currentPost.Title}</h3>
-            <p>${state.currentPost.Username}:</p>
-            <p>${state.currentPost.Content}</p>
-    
-            <div class="post-actions">
-              <button class="like-button" data-id="${
-                state.currentPost.ID
-              }" data-type="like" data-for="post">
-                👍 <span>${state.currentPost.Likes}</span>
-              </button>
-              <button class="dislike-button" data-id="${
-                state.currentPost.ID
-              }" data-type="dislike" data-for="post">
-                👎 <span>${state.currentPost.Dislikes}</span>
-              </button>
-            </div>
-    
-            <h3>Comments</h3>
-            <div id="comments-container">
-              ${
-                state.currentPost.Comments &&
-                state.currentPost.Comments.length > 0
-                  ? state.currentPost.Comments.map(
-                      (comment) => `
-                  <div class="comment">
-                    <p>${comment.Username}:</p>
-                    <p>${comment.Content}</p>
-                    <div class="comment-actions">
-                      <button class="like-button" data-id="${comment.ID}" data-type="like" data-for="comment">
-                        👍 <span>${comment.Likes}</span>
-                      </button>
-                      <button class="dislike-button" data-id="${comment.ID}" data-type="dislike" data-for="comment">
-                        👎 <span>${comment.Dislikes}</span>
-                      </button>
-                    </div>
-                  </div>
-                `
-                    ).join("")
-                  : "<p>No comments yet.</p>"
-              }
-            </div>
-    
-            ${
-              state.sessionID
-                ? `<form id="comment-form">
-                  <input type="hidden" name="post_id" value="${state.currentPost.ID}">
-                  <textarea name="content" class="comment-box" placeholder="Add a comment..." required></textarea>
-                  <button type="submit">Add Comment</button>
-                </form>`
-                : `<p>You must be logged in to add a comment. <a href="/login" data-navigate>Login</a></p>`
-            }
-          </div>
-        `;
+    contentElement.innerHTML = getPostDetailTemplate(state.currentPost);
 
     // Setup reaction buttons
     setupReactionButtons();
@@ -334,6 +288,78 @@ async function fetchSinglePost(postId) {
     console.error("Error fetching post:", error);
     contentElement.innerHTML = `<div class="error">Failed to load post: ${error.message}. Please try again later.</div>`;
   }
+}
+
+// Template for single post detail view
+function getPostDetailTemplate(post) {
+  return `
+      <div class="post" id="post-${post.ID}">
+        <h2>Category: ${post.Category}</h2>
+        <h3>${post.Title}</h3>
+        <p class="author">Posted by: <strong>${post.Username}</strong> on ${
+    post.Date || "Unknown date"
+  }</p>
+        <div class="post-content">
+          ${post.Content}
+        </div>
+  
+        <div class="post-actions">
+          <button class="like-button" data-id="${
+            post.ID
+          }" data-type="like" data-for="post">
+            👍 <span>${post.Likes || 0}</span>
+          </button>
+          <button class="dislike-button" data-id="${
+            post.ID
+          }" data-type="dislike" data-for="post">
+            👎 <span>${post.Dislikes || 0}</span>
+          </button>
+        </div>
+  
+        <h3>Comments (${post.Comments ? post.Comments.length : 0})</h3>
+        <div id="comments-container">
+          ${
+            post.Comments && post.Comments.length > 0
+              ? post.Comments.map(
+                  (comment) => `
+              <div class="comment">
+                <p class="comment-author"><strong>${
+                  comment.Username
+                }</strong> commented:</p>
+                <p class="comment-content">${comment.Content}</p>
+                <div class="comment-actions">
+                  <button class="like-button" data-id="${
+                    comment.ID
+                  }" data-type="like" data-for="comment">
+                    👍 <span>${comment.Likes || 0}</span>
+                  </button>
+                  <button class="dislike-button" data-id="${
+                    comment.ID
+                  }" data-type="dislike" data-for="comment">
+                    👎 <span>${comment.Dislikes || 0}</span>
+                  </button>
+                </div>
+              </div>
+            `
+                ).join("")
+              : "<p>No comments yet. Be the first to comment!</p>"
+          }
+        </div>
+  
+        ${
+          state.sessionID
+            ? `<form id="comment-form">
+              <h4>Add a Comment</h4>
+              <input type="hidden" name="post_id" value="${post.ID}">
+              <textarea name="content" class="comment-box" placeholder="Write your comment here..." required></textarea>
+              <button type="submit">Submit Comment</button>
+            </form>`
+            : `<div class="login-prompt">
+              <p>You must be logged in to add a comment. <a href="/login" data-navigate>Login</a> or <a href="/register" data-navigate>Register</a></p>
+            </div>`
+        }
+      </div>
+    `;
 }
 
 // Fetch filtered posts
@@ -407,15 +433,18 @@ function showLoginForm() {
           <h1>Login</h1>
           <div id="login-error" class="error" style="display: none;"></div>
           <form id="login-form">
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="email" required placeholder="Enter your email">
             
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password" id="password" name="password" required placeholder="Enter your password">
             
             <button type="submit">Login</button>
           </form>
           <p>Don't have an account? <a href="/register" data-navigate>Register here</a></p>
+          <div class="category-button">
+            <a href="/" data-navigate class="back-to-home">Back to Home</a>
+          </div>
         </div>
       `;
 
@@ -429,21 +458,24 @@ function showRegisterForm() {
 
   contentElement.innerHTML = `
         <div class="auth-form">
-          <h1>Register</h1>
+          <h1>Create Account</h1>
           <div id="register-error" class="error" style="display: none;"></div>
           <form id="register-form">
             <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
+            <input type="text" id="username" name="username" required placeholder="Choose a username">
             
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="email" required placeholder="Enter your email">
             
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password" id="password" name="password" required placeholder="Create a password">
             
             <button type="submit">Register</button>
           </form>
           <p>Already have an account? <a href="/login" data-navigate>Login here</a></p>
+          <div class="category-button">
+            <a href="/" data-navigate class="back-to-home">Back to Home</a>
+          </div>
         </div>
       `;
 
@@ -459,14 +491,15 @@ function showCreatePostForm() {
 
   contentElement.innerHTML = `
         <div class="form-container">
-          <h2>Create a Post</h2>
+          <h2>Create a New Post</h2>
           <form id="create-post-form">
             <label for="title">Title:</label>
-            <input type="text" id="title" name="title" required>
+            <input type="text" id="title" name="title" required placeholder="Enter a descriptive title">
             
             <label for="content">Content:</label>
-            <textarea id="content" name="content" required></textarea>
+            <textarea id="content" name="content" required placeholder="Write your post content here..."></textarea>
             
+            <label>Categories:</label>
             <div class="checkbox-container">
               <label><input type="checkbox" name="categories" value="General"> General</label>
               <label><input type="checkbox" name="categories" value="Local News & Events"> Local News & Events</label>
@@ -477,8 +510,11 @@ function showCreatePostForm() {
               <label><input type="checkbox" name="categories" value="Politics"> Politics</label>
             </div>
             
-            <button type="submit">Post</button>
+            <button type="submit">Publish Post</button>
           </form>
+          <div class="category-button" style="margin-top: 20px;">
+            <a href="/" data-navigate class="back-to-home">Cancel</a>
+          </div>
         </div>
       `;
 

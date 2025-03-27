@@ -51,6 +51,9 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		Username:  username,
 	}
 
+	// Set proper content type header
+	w.Header().Set("Content-Type", "application/json")
+	
 	// Return JSON response
 	log.Println("Returning JSON response for home page")
 	util.ExecuteJSON(w, data, http.StatusOK)
