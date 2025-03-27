@@ -3,31 +3,52 @@ package user
 import (
 	"fmt"
 	"forum/internal/database"
+	"forum/internal/model"
 	"forum/internal/util"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-func CheckEmailExists(w http.ResponseWriter, r *http.Request, email string) bool {
+// EmailExists checks if an email already exists in the database
+func EmailExists(email string) (bool, error) {
 	var count int
 	err := database.Db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&count)
 	if err != nil {
-		// If there's an error querying the database, handle it here
-		util.ErrorCheckHandlers(w, r, "Database error", err, http.StatusInternalServerError)
-		return true
+		return false, err
 	}
-	return count > 0
+	return count > 0, nil
 }
 
-func CheckUsernameExists(w http.ResponseWriter, r *http.Request, username string) bool {
+// UsernameExists checks if a username already exists in the database
+func UsernameExists(username string) (bool, error) {
 	var count int
 	err := database.Db.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", username).Scan(&count)
 	if err != nil {
-		util.ErrorCheckHandlers(w, r, "Database error", err, http.StatusInternalServerError)
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// CheckEmailExists is the legacy method, kept for compatibility
+func CheckEmailExists(w http.ResponseWriter, r *http.Request, email string) bool {
+	exists, err := EmailExists(email)
+	if err != nil {
+		// If there's an error querying the database, handle it here
+		util.ExecuteJSON(w, model.MsgData{"Database error"}, http.StatusInternalServerError)
 		return true
 	}
-	return count > 0
+	return exists
+}
+
+// CheckUsernameExists is the legacy method, kept for compatibility
+func CheckUsernameExists(w http.ResponseWriter, r *http.Request, username string) bool {
+	exists, err := UsernameExists(username)
+	if err != nil {
+		util.ExecuteJSON(w, model.MsgData{"Database error"}, http.StatusInternalServerError)
+		return true
+	}
+	return exists
 }
 
 func HashPassword(password string) (string, error) {

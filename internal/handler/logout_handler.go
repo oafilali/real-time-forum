@@ -4,18 +4,25 @@ import (
 	"forum/internal/model"
 	"forum/internal/session"
 	"forum/internal/util"
+	"log"
 	"net/http"
 )
 
-// logoutHandler handles user logout
+// LogoutHandler handles user logout
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		util.ExecuteJSON(w, model.MsgData{"Method not allowed"}, http.StatusMethodNotAllowed)
+		return
+	}
+
 	cookie, err := r.Cookie("session_id")
-	if util.ErrorCheckHandlers(w, r, "No active session", err, http.StatusUnauthorized) {
+	if err != nil {
 		util.ExecuteJSON(w, model.MsgData{"No active session"}, http.StatusUnauthorized)
 		return
 	}
 
-	if err := session.DeleteSession(cookie.Value); util.ErrorCheckHandlers(w, r, "Logout failed", err, http.StatusInternalServerError) {
+	if err := session.DeleteSession(cookie.Value); err != nil {
+		log.Println("Logout failed:", err)
 		util.ExecuteJSON(w, model.MsgData{"Logout failed"}, http.StatusInternalServerError)
 		return
 	}

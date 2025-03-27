@@ -4,6 +4,7 @@ import (
 	"forum/internal/model"
 	"forum/internal/user"
 	"forum/internal/util"
+	"log"
 	"net/http"
 )
 
@@ -23,36 +24,44 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if username already exists
-	if user.CheckUsernameExists(w, r, username) {
+	exists, err := user.UsernameExists(username)
+	if err != nil {
+		log.Println("Database error checking username:", err)
+		util.ExecuteJSON(w, model.MsgData{"Database error"}, http.StatusInternalServerError)
+		return
+	}
+	if exists {
 		util.ExecuteJSON(w, model.MsgData{"Username already taken"}, http.StatusConflict)
 		return
 	}
 
 	// Check if email already exists
-	if user.CheckEmailExists(w, r, email) {
-		if r.Header.Get("Accept") == "application/json" {
-			util.ExecuteJSON(w, model.MsgData{"Email already taken"}, http.StatusConflict)
-		} else {
-			http.Redirect(w, r, "/register?error=Email%20already%20taken", http.StatusFound)
-		}
+	exists, err = user.EmailExists(email)
+	if err != nil {
+		log.Println("Database error checking email:", err)
+		util.ExecuteJSON(w, model.MsgData{"Database error"}, http.StatusInternalServerError)
+		return
+	}
+	if exists {
+		util.ExecuteJSON(w, model.MsgData{"Email already taken"}, http.StatusConflict)
 		return
 	}
 
 	// Hash the password
 	hashed, err := user.HashPassword(password)
-	if util.ErrorCheckHandlers(w, r, "Password hashing failed", err, http.StatusInternalServerError) {
+	if err != nil {
+		log.Println("Password hashing failed:", err)
+		util.ExecuteJSON(w, model.MsgData{"Password hashing failed"}, http.StatusInternalServerError)
 		return
 	}
 
 	// Save user to the database
-	if err := user.SaveUser(username, email, hashed); util.ErrorCheckHandlers(w, r, "User registration failed", err, http.StatusInternalServerError) {
+	if err := user.SaveUser(username, email, hashed); err != nil {
+		log.Println("User registration failed:", err)
+		util.ExecuteJSON(w, model.MsgData{"User registration failed"}, http.StatusInternalServerError)
 		return
 	}
 
-	// Return JSON or redirect to login page
-	if r.Header.Get("Accept") == "application/json" {
-		util.ExecuteJSON(w, model.MsgData{"Registration successful!"}, http.StatusOK)
-	} else {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
+	// Return JSON response
+	util.ExecuteJSON(w, model.MsgData{"Registration successful!"}, http.StatusOK)
 }

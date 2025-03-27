@@ -1,15 +1,16 @@
 package handler
 
 import (
-	"forum/internal/model"
 	"database/sql"
 	"forum/internal/database"
+	"forum/internal/model"
 	"forum/internal/session"
 	"forum/internal/util"
+	"log"
 	"net/http"
 )
 
-// filterHandler handles filtering posts by category
+// FilterHandler handles filtering posts by category
 func FilterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		util.ExecuteJSON(w, model.MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
@@ -44,17 +45,21 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 		util.ExecuteJSON(w, model.MsgData{"Invalid filter request"}, http.StatusBadRequest)
 		return
 	}
-	if util.ErrorCheckHandlers(w, r, "Failed to fetch posts", err, http.StatusInternalServerError) {
+	if err != nil {
+		log.Println("Failed to fetch posts:", err)
+		util.ExecuteJSON(w, model.MsgData{"Failed to fetch posts"}, http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
 	// Collect filtered posts
-	var posts []model.PostData // Assume you create a `PostData` struct in `model`
+	var posts []model.PostData
 	for rows.Next() {
 		var post model.PostData
 		err = rows.Scan(&post.ID, &post.Title, &post.Category)
-		if util.ErrorCheckHandlers(w, r, "Failed to scan post", err, http.StatusInternalServerError) {
+		if err != nil {
+			log.Println("Failed to scan post:", err)
+			util.ExecuteJSON(w, model.MsgData{"Failed to scan post"}, http.StatusInternalServerError)
 			return
 		}
 		posts = append(posts, post)
@@ -62,10 +67,10 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Send JSON response
 	util.ExecuteJSON(w, struct {
-		Category  string
-		Posts     []model.PostData
-		SessionID int
-		Username  string
+		Category  string          `json:"category"`
+		Posts     []model.PostData `json:"posts"`
+		SessionID int             `json:"sessionID"`
+		Username  string          `json:"username"`
 	}{
 		Category:  category,
 		Posts:     posts,

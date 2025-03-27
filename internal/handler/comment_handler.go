@@ -5,22 +5,20 @@ import (
 	"forum/internal/model"
 	"forum/internal/session"
 	"forum/internal/util"
+	"log"
 	"net/http"
 )
 
-var ExecuteJSON = util.ExecuteJSON;
-type MsgData = model.MsgData;
-
-// commentHandler handles adding a comment to a post
-
+// CommentHandler handles adding a comment to a post
 func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		ExecuteJSON(w, MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
+		util.ExecuteJSON(w, model.MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
 		return
 	}
 
 	sessionID, err := session.GetUserIDFromSession(r)
-	if util.ErrorCheckHandlers(w, r, "Invalid session", err, http.StatusUnauthorized) {
+	if err != nil {
+		util.ExecuteJSON(w, model.MsgData{"Invalid session, please log in"}, http.StatusUnauthorized)
 		return
 	}
 
@@ -36,7 +34,9 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := comment.AddComment(sessionID, postID, content); util.ErrorCheckHandlers(w, r, "Failed to add the comment", err, http.StatusInternalServerError) {
+	if err := comment.AddComment(sessionID, postID, content); err != nil {
+		log.Println("Failed to add comment:", err)
+		util.ExecuteJSON(w, model.MsgData{"Failed to add the comment"}, http.StatusInternalServerError)
 		return
 	}
 

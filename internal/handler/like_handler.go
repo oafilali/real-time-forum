@@ -5,10 +5,11 @@ import (
 	"forum/internal/reaction"
 	"forum/internal/session"
 	"forum/internal/util"
+	"log"
 	"net/http"
 )
 
-// likeHandler handles liking or disliking a post or comment
+// LikeHandler handles liking or disliking a post or comment
 func LikeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		util.ExecuteJSON(w, model.MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
@@ -30,7 +31,9 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 	isComment := r.FormValue("is_comment") == "true"
 	reactionType := r.FormValue("type") // "like" or "dislike"
 
-	if err := reaction.LikeItem(sessionID, itemID, isComment, reactionType); util.ErrorCheckHandlers(w, r, "Failed to like the item", err, http.StatusInternalServerError) {
+	if err := reaction.LikeItem(sessionID, itemID, isComment, reactionType); err != nil {
+		log.Println("Failed to like the item:", err)
+		util.ExecuteJSON(w, model.MsgData{"Failed to like the item"}, http.StatusInternalServerError)
 		return
 	}
 

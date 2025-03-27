@@ -1,22 +1,22 @@
 package handler
 
 import (
-	"fmt"
 	"forum/internal/database"
 	"forum/internal/model"
 	"forum/internal/post"
 	"forum/internal/session"
 	"forum/internal/util"
-	"html/template"
+	"log"
 	"net/http"
 	"strings"
 )
 
-// postHandler handles creating a new post
+// CreatePostHandler handles creating a new post
 func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		userID, err := session.GetUserIDFromSession(r)
-		if util.ErrorCheckHandlers(w, r, "Invalid session", err, http.StatusUnauthorized) {
+		if err != nil {
+			util.ExecuteJSON(w, model.MsgData{"Invalid session, please log in"}, http.StatusUnauthorized)
 			return
 		}
 
@@ -25,9 +25,7 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		categories := strings.Join(r.Form["categories"], ", ")
 
 		if title == "" || content == "" {
-			if util.ErrorCheckHandlers(w, r, "Post cannot be empty", fmt.Errorf("post cannot be empty"), http.StatusInternalServerError) {
-				return
-			}
+			util.ExecuteJSON(w, model.MsgData{"Post cannot be empty"}, http.StatusBadRequest)
 			return
 		}
 
@@ -49,9 +47,7 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if !catValid {
-				if util.ErrorCheckHandlers(w, r, "Invalid category", fmt.Errorf("invalid category"), http.StatusInternalServerError) {
-					return
-				}
+				util.ExecuteJSON(w, model.MsgData{"Invalid category"}, http.StatusBadRequest)
 				return
 			}
 		}
@@ -61,17 +57,28 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Insert the post into the database
-		if err := post.CreatePost(userID, title, content, categories); util.ErrorCheckHandlers(w, r, "Post creation failed", err, http.StatusInternalServerError) {
+		if err := post.CreatePost(userID, title, content, categories); err != nil {
+			log.Println("Post creation failed:", err)
+			util.ExecuteJSON(w, model.MsgData{"Post creation failed"}, http.StatusInternalServerError)
 			return
 		}
 
 		id, err := post.GetPostId()
-		if util.ErrorCheckHandlers(w, r, "Database issue", err, http.StatusInternalServerError) {
+		if err != nil {
+			log.Println("Database issue:", err)
+			util.ExecuteJSON(w, model.MsgData{"Database issue"}, http.StatusInternalServerError)
 			return
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("/post?id=%d", id), http.StatusFound)
-	} else {
+		// Return JSON response with the new post ID
+		util.ExecuteJSON(w, struct {
+			Message string `json:"message"`
+			ID      int    `json:"id"`
+		}{
+			Message: "Post created successfully",
+			ID:      id,
+		}, http.StatusOK)
+	} else if r.Method == "GET" {
 		sessionID, err := session.GetUserIDFromSession(r)
 		if err != nil {
 			sessionID = 0 // If there's an error, set sessionID to 0
@@ -83,25 +90,16 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		data := struct {
-			SessionID int
-			Username  string
+			SessionID int    `json:"sessionID"`
+			Username  string `json:"username"`
 		}{
 			SessionID: sessionID,
 			Username:  username,
 		}
 
-		tmpl, err := template.ParseFiles("./web/templates/createPost.html")
-		if util.ErrorCheckHandlers(w, r, "Failed to parse the template", err, http.StatusInternalServerError) {
-			return
-		}
-		if err != nil {
-			util.ExecuteJSON(w, model.MsgData{"Failed to parse the template"}, http.StatusInternalServerError)
-			return
-		}
-
-		err = tmpl.Execute(w, data)
-		if util.ErrorCheckHandlers(w, r, "Failed to render the template", err, http.StatusInternalServerError) {
-			return
-		}
+		// Return JSON for GET request (form data)
+		util.ExecuteJSON(w, data, http.StatusOK)
+	} else {
+		util.ExecuteJSON(w, model.MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
 	}
 }
