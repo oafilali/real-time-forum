@@ -55,7 +55,7 @@ func startServer() {
 		} else {
 			// For all other routes when HTML is expected, serve the SPA index
 			log.Printf("Serving SPA index.html for path: %s", r.URL.Path)
-			http.ServeFile(w, r, "./web/static/index.html")
+			http.ServeFile(w, r, "./web/templates/index.html")
 		}
 	})
 	
