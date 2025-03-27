@@ -219,85 +219,94 @@ async function fetchSinglePost(postId) {
   contentElement.innerHTML = '<div class="loading">Loading post...</div>';
 
   try {
+    console.log("Fetching post with ID:", postId);
     const response = await fetch(`/post?id=${postId}`);
     const data = await response.json();
 
-    state.currentPost = data.Post;
+    if (!response.ok) {
+      throw new Error(
+        `Server returned ${response.status}: ${data.message || "Unknown error"}`
+      );
+    }
 
-    if (state.currentPost) {
-      contentElement.innerHTML = `
-          <div class="post" id="post-${state.currentPost.ID}">
-            <h2>Category: ${state.currentPost.Category}</h2>
-            <h3>${state.currentPost.Title}</h3>
-            <p>${state.currentPost.Username}:</p>
-            <p>${state.currentPost.Content}</p>
+    state.currentPost = data.post || data.Post;
+
+    if (!state.currentPost || !state.currentPost.ID) {
+      contentElement.innerHTML =
+        '<div class="error">Post not found or invalid post data received.</div>';
+      console.error("Invalid post data received:", data);
+      return;
+    }
+
+    contentElement.innerHTML = `
+        <div class="post" id="post-${state.currentPost.ID}">
+          <h2>Category: ${state.currentPost.Category}</h2>
+          <h3>${state.currentPost.Title}</h3>
+          <p>${state.currentPost.Username}:</p>
+          <p>${state.currentPost.Content}</p>
   
-            <div class="post-actions">
-              <button class="like-button" data-id="${
-                state.currentPost.ID
-              }" data-type="like" data-for="post">
-                👍 <span>${state.currentPost.Likes}</span>
-              </button>
-              <button class="dislike-button" data-id="${
-                state.currentPost.ID
-              }" data-type="dislike" data-for="post">
-                👎 <span>${state.currentPost.Dislikes}</span>
-              </button>
-            </div>
+          <div class="post-actions">
+            <button class="like-button" data-id="${
+              state.currentPost.ID
+            }" data-type="like" data-for="post">
+              👍 <span>${state.currentPost.Likes}</span>
+            </button>
+            <button class="dislike-button" data-id="${
+              state.currentPost.ID
+            }" data-type="dislike" data-for="post">
+              👎 <span>${state.currentPost.Dislikes}</span>
+            </button>
+          </div>
   
-            <h3>Comments</h3>
-            <div id="comments-container">
-              ${
-                state.currentPost.Comments &&
-                state.currentPost.Comments.length > 0
-                  ? state.currentPost.Comments.map(
-                      (comment) => `
-                  <div class="comment">
-                    <p>${comment.Username}:</p>
-                    <p>${comment.Content}</p>
-                    <div class="comment-actions">
-                      <button class="like-button" data-id="${comment.ID}" data-type="like" data-for="comment">
-                        👍 <span>${comment.Likes}</span>
-                      </button>
-                      <button class="dislike-button" data-id="${comment.ID}" data-type="dislike" data-for="comment">
-                        👎 <span>${comment.Dislikes}</span>
-                      </button>
-                    </div>
-                  </div>
-                `
-                    ).join("")
-                  : "<p>No comments yet.</p>"
-              }
-            </div>
-  
+          <h3>Comments</h3>
+          <div id="comments-container">
             ${
-              state.sessionID
-                ? `<form id="comment-form">
-                  <input type="hidden" name="post_id" value="${state.currentPost.ID}">
-                  <textarea name="content" class="comment-box" placeholder="Add a comment..." required></textarea>
-                  <button type="submit">Add Comment</button>
-                </form>`
-                : `<p>You must be logged in to add a comment. <a href="/login" data-navigate>Login</a></p>`
+              state.currentPost.Comments &&
+              state.currentPost.Comments.length > 0
+                ? state.currentPost.Comments.map(
+                    (comment) => `
+                <div class="comment">
+                  <p>${comment.Username}:</p>
+                  <p>${comment.Content}</p>
+                  <div class="comment-actions">
+                    <button class="like-button" data-id="${comment.ID}" data-type="like" data-for="comment">
+                      👍 <span>${comment.Likes}</span>
+                    </button>
+                    <button class="dislike-button" data-id="${comment.ID}" data-type="dislike" data-for="comment">
+                      👎 <span>${comment.Dislikes}</span>
+                    </button>
+                  </div>
+                </div>
+              `
+                  ).join("")
+                : "<p>No comments yet.</p>"
             }
           </div>
-        `;
+  
+          ${
+            state.sessionID
+              ? `<form id="comment-form">
+                <input type="hidden" name="post_id" value="${state.currentPost.ID}">
+                <textarea name="content" class="comment-box" placeholder="Add a comment..." required></textarea>
+                <button type="submit">Add Comment</button>
+              </form>`
+              : `<p>You must be logged in to add a comment. <a href="/login" data-navigate>Login</a></p>`
+          }
+        </div>
+      `;
 
-      // Setup reaction buttons
-      setupReactionButtons();
+    // Setup reaction buttons
+    setupReactionButtons();
 
-      // Setup comment form if logged in
-      if (state.sessionID) {
-        document
-          .getElementById("comment-form")
-          .addEventListener("submit", handleAddComment);
-      }
-    } else {
-      contentElement.innerHTML = '<div class="error">Post not found.</div>';
+    // Setup comment form if logged in
+    if (state.sessionID) {
+      document
+        .getElementById("comment-form")
+        .addEventListener("submit", handleAddComment);
     }
   } catch (error) {
     console.error("Error fetching post:", error);
-    contentElement.innerHTML =
-      '<div class="error">Failed to load post. Please try again later.</div>';
+    contentElement.innerHTML = `<div class="error">Failed to load post: ${error.message}. Please try again later.</div>`;
   }
 }
 
@@ -575,8 +584,14 @@ async function handleCreatePost(event) {
     const data = await response.json();
 
     if (response.ok) {
-      // Post created successfully, navigate to the post
-      navigateTo(`/post?id=${data.id}`);
+      // Post created successfully
+      console.log("Post created with ID:", data.id);
+
+      // Add a small delay to ensure the database has time to process
+      setTimeout(() => {
+        // Navigate to the post
+        navigateTo(`/post?id=${data.id}`);
+      }, 500);
     } else {
       alert(data.message || "Failed to create post");
     }

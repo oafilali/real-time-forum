@@ -1,9 +1,11 @@
 package post
 
 import (
+	"fmt"
 	"forum/internal/database"
 	"forum/internal/model"
 	"log"
+	"strconv"
 )
 
 func CreatePost(userID int, title, content, category string) error {
@@ -68,19 +70,40 @@ func GetPostId() (id int, err error) {
 	return id, nil
 }
 
+// Update this function in internal/post/post.go
 func FetchPost(postID string) (model.Post, error) {
-	var post model.Post
-	err := database.Db.QueryRow("SELECT id, user_id, title, content, category, date FROM posts WHERE id = ?", postID).Scan(
-		&post.ID, &post.UserID, &post.Title, &post.Content, &post.Category, &post.Date,
-	)
-	if err != nil {
-		return model.Post{}, err
-	}
-	username := ""
-	err = database.Db.QueryRow("SELECT username FROM users WHERE id= ?", post.UserID).Scan(&username)
-	if err != nil {
-		username = "Unknown"
-	}
-	post.Username = username
-	return post, err
+    var post model.Post
+    
+    // Add debugging
+    log.Printf("Attempting to fetch post with ID: %s", postID)
+    
+    // Ensure postID is a valid integer
+    postIDInt := 0
+    var err error
+    if postID != "" {
+        postIDInt, err = strconv.Atoi(postID)
+        if err != nil {
+            log.Printf("Invalid post ID format: %s, error: %v", postID, err)
+            return model.Post{}, fmt.Errorf("invalid post ID format: %v", err)
+        }
+    }
+    
+    err = database.Db.QueryRow("SELECT id, user_id, title, content, category, date FROM posts WHERE id = ?", postIDInt).Scan(
+        &post.ID, &post.UserID, &post.Title, &post.Content, &post.Category, &post.Date,
+    )
+    if err != nil {
+        log.Printf("Error fetching post with ID %s: %v", postID, err)
+        return model.Post{}, err
+    }
+    
+    username := ""
+    err = database.Db.QueryRow("SELECT username FROM users WHERE id = ?", post.UserID).Scan(&username)
+    if err != nil {
+        log.Printf("Error fetching username for user ID %d: %v", post.UserID, err)
+        username = "Unknown"
+    }
+    
+    post.Username = username
+    log.Printf("Successfully fetched post with ID %s: %+v", postID, post)
+    return post, nil
 }
