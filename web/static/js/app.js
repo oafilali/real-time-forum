@@ -1,4 +1,4 @@
-// app.js - Main application file for SPA
+// app.js - Simplified main application file for SPA
 
 // Application state
 const state = {
@@ -6,24 +6,23 @@ const state = {
   username: null,
   posts: [],
   currentPost: null,
-  currentRoute: window.location.pathname,
 };
 
-// Initialize the app
+// Initialize the app when DOM is loaded
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
-  // Check if user is logged in
+  // Check user login status
   await checkUserStatus();
 
-  // Add navigation event listeners
+  // Set up navigation
   setupNavigation();
 
   // Handle the current route
   handleRoute();
 }
 
-// Check user login status
+// Check if user is logged in
 async function checkUserStatus() {
   try {
     const response = await fetch("/user/status");
@@ -32,7 +31,7 @@ async function checkUserStatus() {
     state.sessionID = data.sessionID;
     state.username = data.username;
 
-    // Update the auth box with user info
+    // Update UI elements based on login status
     updateAuthBox();
     updateSidebar();
   } catch (error) {
@@ -40,92 +39,95 @@ async function checkUserStatus() {
   }
 }
 
-// Update the auth box based on login status
+// Update the authentication box in the header
 function updateAuthBox() {
   const authBox = document.getElementById("auth-box");
 
   if (state.sessionID && state.username) {
     // User is logged in
     authBox.innerHTML = `
-          <p>Logged in as: <strong>${state.username}</strong></p>
-          <a href="/createPost" data-navigate>Create Post</a>
-          <a href="#" id="logout-link">Logout</a>
-        `;
+        <p>Logged in as: <strong>${state.username}</strong></p>
+        <a href="/createPost" data-navigate>Create Post</a>
+        <a href="#" id="logout-link">Logout</a>
+      `;
 
-    // Add logout event listener
     document
       .getElementById("logout-link")
       .addEventListener("click", handleLogout);
   } else {
     // User is not logged in
     authBox.innerHTML = `
-          <a href="/login" data-navigate>Login</a>
-          <a href="/register" data-navigate>Register</a>
-        `;
+        <a href="/login" data-navigate>Login</a>
+        <a href="/register" data-navigate>Register</a>
+      `;
   }
 }
 
-// Update the sidebar based on login status
+// Update the sidebar categories and filters
 function updateSidebar() {
   const sidebar = document.getElementById("sidebar");
 
-  sidebar.innerHTML = `
-        <h2>Categories:</h2>
-        <p><a href="/filter?category=General" data-navigate>General</a></p>
-        <p><a href="/filter?category=Local%20News%20%26%20Events" data-navigate>Local News & Events</a></p>
-        <p><a href="/filter?category=Viking%20line" data-navigate>Viking line</a></p>
-        <p><a href="/filter?category=Travel" data-navigate>Travel</a></p>
-        <p><a href="/filter?category=Sailing" data-navigate>Sailing</a></p>
-        <p><a href="/filter?category=Cuisine%20%26%20food" data-navigate>Cuisine & food</a></p>
-        <p><a href="/filter?category=Politics" data-navigate>Politics</a></p>
-        ${
-          state.sessionID
-            ? `
-          <h2>Filters:</h2>
-          <p><a href="/filter?user_created=true" data-navigate>My Posts</a></p>
-          <p><a href="/filter?liked=true" data-navigate>Liked Posts</a></p>
-        `
-            : ""
-        }
-        <div class="category-button">
-          <a href="/" data-navigate class="back-to-home">Back to Home</a>
-        </div>
+  let sidebarHTML = `
+      <h2>Categories:</h2>
+      <p><a href="/filter?category=General" data-navigate>General</a></p>
+      <p><a href="/filter?category=Local%20News%20%26%20Events" data-navigate>Local News & Events</a></p>
+      <p><a href="/filter?category=Viking%20line" data-navigate>Viking line</a></p>
+      <p><a href="/filter?category=Travel" data-navigate>Travel</a></p>
+      <p><a href="/filter?category=Sailing" data-navigate>Sailing</a></p>
+      <p><a href="/filter?category=Cuisine%20%26%20food" data-navigate>Cuisine & food</a></p>
+      <p><a href="/filter?category=Politics" data-navigate>Politics</a></p>
+    `;
+
+  // Add user-specific filters if logged in
+  if (state.sessionID) {
+    sidebarHTML += `
+        <h2>Filters:</h2>
+        <p><a href="/filter?user_created=true" data-navigate>My Posts</a></p>
+        <p><a href="/filter?liked=true" data-navigate>Liked Posts</a></p>
       `;
+  }
+
+  // Add home button
+  sidebarHTML += `
+      <div class="category-button">
+        <a href="/" data-navigate class="back-to-home">Back to Home</a>
+      </div>
+    `;
+
+  sidebar.innerHTML = sidebarHTML;
 }
 
-// Setup navigation for SPA
+// Set up SPA navigation
 function setupNavigation() {
-  // Handle all links with data-navigate attribute
+  // Handle link clicks with data-navigate attribute
   document.addEventListener("click", (event) => {
     const link = event.target.closest("[data-navigate]");
     if (link) {
       event.preventDefault();
-      const url = link.getAttribute("href");
-      navigateTo(url);
+      navigateTo(link.getAttribute("href"));
     }
   });
 
   // Handle browser back/forward buttons
-  window.addEventListener("popstate", () => {
-    handleRoute();
-  });
+  window.addEventListener("popstate", handleRoute);
 }
 
-// Navigate to a new route
+// Navigate to a URL
 function navigateTo(url) {
-  // Update the URL
   history.pushState(null, "", url);
-
-  // Handle the new route
   handleRoute();
 }
 
-// Handle the current route
+// Route handler - determines what to show based on URL
 function handleRoute() {
   const path = window.location.pathname;
   const searchParams = new URLSearchParams(window.location.search);
 
-  // Route handling
+  // Show loading state
+  document.getElementById("content").innerHTML =
+    '<div class="loading">Loading...</div>';
+
+  // Handle different routes
   if (path === "/" || path === "/index.html") {
     fetchPosts();
   } else if (path === "/post") {
@@ -136,15 +138,7 @@ function handleRoute() {
       showError("Post ID is missing or invalid");
     }
   } else if (path === "/filter") {
-    const category = searchParams.get("category");
-    const userCreated = searchParams.get("user_created");
-    const liked = searchParams.get("liked");
-
-    if (category || userCreated || liked) {
-      fetchFilteredPosts(window.location.search);
-    } else {
-      showError("Invalid filter parameters");
-    }
+    fetchFilteredPosts(window.location.search);
   } else if (path === "/login") {
     showLoginForm();
   } else if (path === "/register") {
@@ -153,23 +147,18 @@ function handleRoute() {
     if (state.sessionID) {
       showCreatePostForm();
     } else {
-      // Redirect to login if not authenticated
       navigateTo("/login");
     }
   } else {
-    // 404 not found
     showError("Page not found");
   }
 }
 
-// Fetch posts for the homepage
+// Fetch posts for homepage
 async function fetchPosts() {
   const contentElement = document.getElementById("content");
-  contentElement.innerHTML = '<div class="loading">Loading posts...</div>';
 
   try {
-    console.log("Fetching homepage posts...");
-    // Add a query parameter to ensure it's treated as an API request
     const response = await fetch("/?api=true", {
       headers: {
         Accept: "application/json",
@@ -182,25 +171,22 @@ async function fetchPosts() {
     }
 
     const data = await response.json();
-
-    // Debug output
-    console.log("Fetched home data:", data);
-
     state.posts = data.Posts || [];
 
     if (state.posts.length > 0) {
+      // Display posts
       contentElement.innerHTML = `
-            <h2>All posts</h2>
-            ${state.posts.map((post) => getPostTemplate(post)).join("")}
-          `;
+          <h2>All posts</h2>
+          ${state.posts.map((post) => getPostTemplate(post)).join("")}
+        `;
 
-      // Add event listeners for like/dislike buttons
+      // Set up reaction buttons
       setupReactionButtons();
     } else {
       contentElement.innerHTML = `
-            <h2>All posts</h2>
-            <p>No posts available.</p>
-          `;
+          <h2>All posts</h2>
+          <p>No posts available.</p>
+        `;
     }
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -209,7 +195,7 @@ async function fetchPosts() {
   }
 }
 
-// Template for posts in the feed
+// Template for post in feed
 function getPostTemplate(post) {
   return `
       <div class="post">
@@ -220,7 +206,7 @@ function getPostTemplate(post) {
             <span class="username">Posted by: <strong>${
               post.Username
             }</strong></span>
-            <span class="date">Date: ${post.Date}</span>
+            <span class="date">Date: ${post.Date || "Unknown"}</span>
           </div>
           <div class="right">
             <button class="like-button" data-id="${
@@ -240,57 +226,41 @@ function getPostTemplate(post) {
 // Fetch a single post
 async function fetchSinglePost(postId) {
   const contentElement = document.getElementById("content");
-  contentElement.innerHTML = '<div class="loading">Loading post...</div>';
 
   try {
-    console.log("Fetching post with ID:", postId);
-
-    if (!postId || postId === "undefined" || postId === "null") {
-      throw new Error("Invalid post ID");
-    }
-
     const response = await fetch(`/post?id=${postId}`, {
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Server returned ${response.status}: ${await response.text()}`
-      );
+      throw new Error(`Server error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("Post data received:", data);
-
     state.currentPost = data.post || data.Post;
 
     if (!state.currentPost || !state.currentPost.ID) {
-      contentElement.innerHTML =
-        '<div class="error">Post not found or invalid post data received.</div>';
-      console.error("Invalid post data received:", data);
-      return;
+      throw new Error("Invalid post data");
     }
 
+    // Display post and comments
     contentElement.innerHTML = getPostDetailTemplate(state.currentPost);
 
-    // Setup reaction buttons
+    // Set up reaction buttons
     setupReactionButtons();
 
-    // Setup comment form if logged in
-    if (state.sessionID) {
-      document
-        .getElementById("comment-form")
-        .addEventListener("submit", handleAddComment);
+    // Set up comment form if logged in
+    const commentForm = document.getElementById("comment-form");
+    if (commentForm) {
+      commentForm.addEventListener("submit", handleAddComment);
     }
   } catch (error) {
     console.error("Error fetching post:", error);
-    contentElement.innerHTML = `<div class="error">Failed to load post: ${error.message}. Please try again later.</div>`;
+    contentElement.innerHTML = `<div class="error">Failed to load post: ${error.message}</div>`;
   }
 }
 
-// Template for single post detail view
+// Template for single post view
 function getPostDetailTemplate(post) {
   return `
       <div class="post" id="post-${post.ID}">
@@ -299,10 +269,8 @@ function getPostDetailTemplate(post) {
         <p class="author">Posted by: <strong>${post.Username}</strong> on ${
     post.Date || "Unknown date"
   }</p>
-        <div class="post-content">
-          ${post.Content}
-        </div>
-  
+        <div class="post-content">${post.Content}</div>
+        
         <div class="post-actions">
           <button class="like-button" data-id="${
             post.ID
@@ -315,64 +283,79 @@ function getPostDetailTemplate(post) {
             👎 <span>${post.Dislikes || 0}</span>
           </button>
         </div>
-  
+        
         <h3>Comments (${post.Comments ? post.Comments.length : 0})</h3>
         <div id="comments-container">
-          ${
-            post.Comments && post.Comments.length > 0
-              ? post.Comments.map(
-                  (comment) => `
-              <div class="comment">
-                <p class="comment-author"><strong>${
-                  comment.Username
-                }</strong> commented:</p>
-                <p class="comment-content">${comment.Content}</p>
-                <div class="comment-actions">
-                  <button class="like-button" data-id="${
-                    comment.ID
-                  }" data-type="like" data-for="comment">
-                    👍 <span>${comment.Likes || 0}</span>
-                  </button>
-                  <button class="dislike-button" data-id="${
-                    comment.ID
-                  }" data-type="dislike" data-for="comment">
-                    👎 <span>${comment.Dislikes || 0}</span>
-                  </button>
-                </div>
-              </div>
-            `
-                ).join("")
-              : "<p>No comments yet. Be the first to comment!</p>"
-          }
+          ${getCommentsHTML(post.Comments)}
         </div>
-  
-        ${
-          state.sessionID
-            ? `<form id="comment-form">
-              <h4>Add a Comment</h4>
-              <input type="hidden" name="post_id" value="${post.ID}">
-              <textarea name="content" class="comment-box" placeholder="Write your comment here..." required></textarea>
-              <button type="submit">Submit Comment</button>
-            </form>`
-            : `<div class="login-prompt">
-              <p>You must be logged in to add a comment. <a href="/login" data-navigate>Login</a> or <a href="/register" data-navigate>Register</a></p>
-            </div>`
-        }
+        
+        ${getCommentFormHTML(post.ID)}
       </div>
     `;
+}
+
+// Generate HTML for comments
+function getCommentsHTML(comments) {
+  if (!comments || comments.length === 0) {
+    return "<p>No comments yet. Be the first to comment!</p>";
+  }
+
+  return comments
+    .map(
+      (comment) => `
+      <div class="comment">
+        <p class="comment-author"><strong>${
+          comment.Username
+        }</strong> commented:</p>
+        <p class="comment-content">${comment.Content}</p>
+        <div class="comment-actions">
+          <button class="like-button" data-id="${
+            comment.ID
+          }" data-type="like" data-for="comment">
+            👍 <span>${comment.Likes || 0}</span>
+          </button>
+          <button class="dislike-button" data-id="${
+            comment.ID
+          }" data-type="dislike" data-for="comment">
+            👎 <span>${comment.Dislikes || 0}</span>
+          </button>
+        </div>
+      </div>
+    `
+    )
+    .join("");
+}
+
+// Generate HTML for comment form
+function getCommentFormHTML(postId) {
+  if (state.sessionID) {
+    return `
+        <form id="comment-form">
+          <h4>Add a Comment</h4>
+          <input type="hidden" name="post_id" value="${postId}">
+          <textarea name="content" class="comment-box" placeholder="Write your comment here..." required></textarea>
+          <button type="submit">Submit Comment</button>
+        </form>
+      `;
+  } else {
+    return `
+        <div class="login-prompt">
+          <p>You must be logged in to add a comment. 
+             <a href="/login" data-navigate>Login</a> or 
+             <a href="/register" data-navigate>Register</a>
+          </p>
+        </div>
+      `;
+  }
 }
 
 // Fetch filtered posts
 async function fetchFilteredPosts(queryString) {
   const contentElement = document.getElementById("content");
-  contentElement.innerHTML = '<div class="loading">Loading posts...</div>';
 
   try {
-    // Build the query string
     const response = await fetch(`/filter${queryString}`, {
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     });
 
     if (!response.ok) {
@@ -380,42 +363,40 @@ async function fetchFilteredPosts(queryString) {
     }
 
     const data = await response.json();
-    console.log("Filtered posts data:", data);
-
     state.posts = data.posts || [];
 
-    let title = "";
+    // Determine filter title
+    let title = "Filtered Posts";
     if (data.category) {
       title = `${data.category} Posts`;
     } else if (queryString.includes("user_created=true")) {
       title = "My Posts";
     } else if (queryString.includes("liked=true")) {
       title = "Liked Posts";
-    } else {
-      title = "Filtered Posts";
     }
 
+    // Display posts
     if (state.posts.length > 0) {
       contentElement.innerHTML = `
-            <h2>${title}</h2>
-            ${state.posts
-              .map(
-                (post) => `
-              <div class="post">
-                <h2><a href="/post?id=${post.id || post.ID}" data-navigate>${
-                  post.title || post.Title
-                }</a></h2>
-                <p>Category: ${post.category || post.Category}</p>
-              </div>
-            `
-              )
-              .join("")}
-          `;
+          <h2>${title}</h2>
+          ${state.posts
+            .map(
+              (post) => `
+            <div class="post">
+              <h2><a href="/post?id=${post.id || post.ID}" data-navigate>${
+                post.title || post.Title
+              }</a></h2>
+              <p>Category: ${post.category || post.Category}</p>
+            </div>
+          `
+            )
+            .join("")}
+        `;
     } else {
       contentElement.innerHTML = `
-            <h2>${title}</h2>
-            <p>No posts found.</p>
-          `;
+          <h2>${title}</h2>
+          <p>No posts found.</p>
+        `;
     }
   } catch (error) {
     console.error("Error fetching filtered posts:", error);
@@ -429,57 +410,55 @@ function showLoginForm() {
   const contentElement = document.getElementById("content");
 
   contentElement.innerHTML = `
-        <div class="auth-form">
-          <h1>Login</h1>
-          <div id="login-error" class="error" style="display: none;"></div>
-          <form id="login-form">
-            <label for="email">Email Address:</label>
-            <input type="email" id="email" name="email" required placeholder="Enter your email">
-            
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required placeholder="Enter your password">
-            
-            <button type="submit">Login</button>
-          </form>
-          <p>Don't have an account? <a href="/register" data-navigate>Register here</a></p>
-          <div class="category-button">
-            <a href="/" data-navigate class="back-to-home">Back to Home</a>
-          </div>
+      <div class="auth-form">
+        <h1>Login</h1>
+        <div id="login-error" class="error" style="display: none;"></div>
+        <form id="login-form">
+          <label for="email">Email Address:</label>
+          <input type="email" id="email" name="email" required placeholder="Enter your email">
+          
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" required placeholder="Enter your password">
+          
+          <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account? <a href="/register" data-navigate>Register here</a></p>
+        <div class="category-button">
+          <a href="/" data-navigate class="back-to-home">Back to Home</a>
         </div>
-      `;
+      </div>
+    `;
 
-  // Add form submit event listener
   document.getElementById("login-form").addEventListener("submit", handleLogin);
 }
 
-// Show register form
+// Show registration form
 function showRegisterForm() {
   const contentElement = document.getElementById("content");
 
   contentElement.innerHTML = `
-        <div class="auth-form">
-          <h1>Create Account</h1>
-          <div id="register-error" class="error" style="display: none;"></div>
-          <form id="register-form">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required placeholder="Choose a username">
-            
-            <label for="email">Email Address:</label>
-            <input type="email" id="email" name="email" required placeholder="Enter your email">
-            
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required placeholder="Create a password">
-            
-            <button type="submit">Register</button>
-          </form>
-          <p>Already have an account? <a href="/login" data-navigate>Login here</a></p>
-          <div class="category-button">
-            <a href="/" data-navigate class="back-to-home">Back to Home</a>
-          </div>
+      <div class="auth-form">
+        <h1>Create Account</h1>
+        <div id="register-error" class="error" style="display: none;"></div>
+        <form id="register-form">
+          <label for="username">Username:</label>
+          <input type="text" id="username" name="username" required placeholder="Choose a username">
+          
+          <label for="email">Email Address:</label>
+          <input type="email" id="email" name="email" required placeholder="Enter your email">
+          
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" required placeholder="Create a password">
+          
+          <button type="submit">Register</button>
+        </form>
+        <p>Already have an account? <a href="/login" data-navigate>Login here</a></p>
+        <div class="category-button">
+          <a href="/" data-navigate class="back-to-home">Back to Home</a>
         </div>
-      `;
+      </div>
+    `;
 
-  // Add form submit event listener
   document
     .getElementById("register-form")
     .addEventListener("submit", handleRegister);
@@ -490,35 +469,34 @@ function showCreatePostForm() {
   const contentElement = document.getElementById("content");
 
   contentElement.innerHTML = `
-        <div class="form-container">
-          <h2>Create a New Post</h2>
-          <form id="create-post-form">
-            <label for="title">Title:</label>
-            <input type="text" id="title" name="title" required placeholder="Enter a descriptive title">
-            
-            <label for="content">Content:</label>
-            <textarea id="content" name="content" required placeholder="Write your post content here..."></textarea>
-            
-            <label>Categories:</label>
-            <div class="checkbox-container">
-              <label><input type="checkbox" name="categories" value="General"> General</label>
-              <label><input type="checkbox" name="categories" value="Local News & Events"> Local News & Events</label>
-              <label><input type="checkbox" name="categories" value="Viking line"> Viking Line</label>
-              <label><input type="checkbox" name="categories" value="Travel"> Travel</label>
-              <label><input type="checkbox" name="categories" value="Sailing"> Sailing</label>
-              <label><input type="checkbox" name="categories" value="Cuisine & food"> Cuisine & Food</label>
-              <label><input type="checkbox" name="categories" value="Politics"> Politics</label>
-            </div>
-            
-            <button type="submit">Publish Post</button>
-          </form>
-          <div class="category-button" style="margin-top: 20px;">
-            <a href="/" data-navigate class="back-to-home">Cancel</a>
+      <div class="form-container">
+        <h2>Create a New Post</h2>
+        <form id="create-post-form">
+          <label for="title">Title:</label>
+          <input type="text" id="title" name="title" required placeholder="Enter a descriptive title">
+          
+          <label for="content">Content:</label>
+          <textarea id="content" name="content" required placeholder="Write your post content here..."></textarea>
+          
+          <label>Categories:</label>
+          <div class="checkbox-container">
+            <label><input type="checkbox" name="categories" value="General"> General</label>
+            <label><input type="checkbox" name="categories" value="Local News & Events"> Local News & Events</label>
+            <label><input type="checkbox" name="categories" value="Viking line"> Viking Line</label>
+            <label><input type="checkbox" name="categories" value="Travel"> Travel</label>
+            <label><input type="checkbox" name="categories" value="Sailing"> Sailing</label>
+            <label><input type="checkbox" name="categories" value="Cuisine & food"> Cuisine & Food</label>
+            <label><input type="checkbox" name="categories" value="Politics"> Politics</label>
           </div>
+          
+          <button type="submit">Publish Post</button>
+        </form>
+        <div class="category-button" style="margin-top: 20px;">
+          <a href="/" data-navigate class="back-to-home">Cancel</a>
         </div>
-      `;
+      </div>
+    `;
 
-  // Add form submit event listener
   document
     .getElementById("create-post-form")
     .addEventListener("submit", handleCreatePost);
@@ -529,14 +507,14 @@ function showError(message) {
   const contentElement = document.getElementById("content");
 
   contentElement.innerHTML = `
-        <div class="error-container">
-          <h1>Error</h1>
-          <p>${message}</p>
-          <div class="category-button">
-            <a href="/" data-navigate class="back-to-home">Back to Home</a>
-          </div>
+      <div class="error-container">
+        <h1>Error</h1>
+        <p>${message}</p>
+        <div class="category-button">
+          <a href="/" data-navigate class="back-to-home">Back to Home</a>
         </div>
-      `;
+      </div>
+    `;
 }
 
 // Handle login form submission
@@ -544,13 +522,7 @@ async function handleLogin(event) {
   event.preventDefault();
 
   const form = event.target;
-  const email = form.email.value;
-  const password = form.password.value;
-
-  // Create form data
-  const formData = new FormData();
-  formData.append("email", email);
-  formData.append("password", password);
+  const formData = new FormData(form);
 
   try {
     const response = await fetch("/login", {
@@ -565,11 +537,8 @@ async function handleLogin(event) {
       state.sessionID = data.sessionID;
       state.username = data.username;
 
-      // Update UI
       updateAuthBox();
       updateSidebar();
-
-      // Redirect to home page
       navigateTo("/");
     } else {
       // Show error message
@@ -579,9 +548,9 @@ async function handleLogin(event) {
     }
   } catch (error) {
     console.error("Login error:", error);
-    const errorElement = document.getElementById("login-error");
-    errorElement.textContent = "An error occurred. Please try again.";
-    errorElement.style.display = "block";
+    document.getElementById("login-error").textContent =
+      "An error occurred. Please try again.";
+    document.getElementById("login-error").style.display = "block";
   }
 }
 
@@ -590,15 +559,7 @@ async function handleRegister(event) {
   event.preventDefault();
 
   const form = event.target;
-  const username = form.username.value;
-  const email = form.email.value;
-  const password = form.password.value;
-
-  // Create form data
-  const formData = new FormData();
-  formData.append("username", username);
-  formData.append("email", email);
-  formData.append("password", password);
+  const formData = new FormData(form);
 
   try {
     const response = await fetch("/register", {
@@ -609,7 +570,7 @@ async function handleRegister(event) {
     const data = await response.json();
 
     if (response.ok) {
-      // Registration successful, redirect to login
+      // Registration successful
       navigateTo("/login");
     } else {
       // Show error message
@@ -619,35 +580,18 @@ async function handleRegister(event) {
     }
   } catch (error) {
     console.error("Registration error:", error);
-    const errorElement = document.getElementById("register-error");
-    errorElement.textContent = "An error occurred. Please try again.";
-    errorElement.style.display = "block";
+    document.getElementById("register-error").textContent =
+      "An error occurred. Please try again.";
+    document.getElementById("register-error").style.display = "block";
   }
 }
 
-// Handle create post form submission
+// Handle create post submission
 async function handleCreatePost(event) {
   event.preventDefault();
 
   const form = event.target;
-  const title = form.title.value;
-  const content = form.content.value;
-
-  // Get selected categories
-  const categoriesInputs = form.querySelectorAll(
-    'input[name="categories"]:checked'
-  );
-  const categories = Array.from(categoriesInputs).map((input) => input.value);
-
-  // Create form data
-  const formData = new FormData();
-  formData.append("title", title);
-  formData.append("content", content);
-
-  // Add categories
-  categories.forEach((category) => {
-    formData.append("categories", category);
-  });
+  const formData = new FormData(form);
 
   try {
     const response = await fetch("/createPost", {
@@ -658,14 +602,10 @@ async function handleCreatePost(event) {
     const data = await response.json();
 
     if (response.ok) {
-      // Post created successfully
-      console.log("Post created with ID:", data.id);
-
-      // Add a small delay to ensure the database has time to process
+      // Successfully created post
       setTimeout(() => {
-        // Navigate to the post
         navigateTo(`/post?id=${data.id}`);
-      }, 500);
+      }, 300);
     } else {
       alert(data.message || "Failed to create post");
     }
@@ -675,18 +615,13 @@ async function handleCreatePost(event) {
   }
 }
 
-// Handle adding a comment
+// Handle adding comments
 async function handleAddComment(event) {
   event.preventDefault();
 
   const form = event.target;
-  const postId = form.post_id.value;
-  const content = form.content.value;
-
-  // Create form data
-  const formData = new FormData();
-  formData.append("post_id", postId);
-  formData.append("content", content);
+  const formData = new FormData(form);
+  const postId = formData.get("post_id");
 
   try {
     const response = await fetch("/comment", {
@@ -694,12 +629,11 @@ async function handleAddComment(event) {
       body: formData,
     });
 
-    const data = await response.json();
-
     if (response.ok) {
-      // Comment added successfully, refresh the post
+      // Comment added, refresh the post
       fetchSinglePost(postId);
     } else {
+      const data = await response.json();
       alert(data.message || "Failed to add comment");
     }
   } catch (error) {
@@ -722,37 +656,25 @@ async function handleLogout(event) {
       state.sessionID = null;
       state.username = null;
 
-      // Update UI
       updateAuthBox();
       updateSidebar();
-
-      // Redirect to home page
       navigateTo("/");
-    } else {
-      console.error("Logout failed");
     }
   } catch (error) {
     console.error("Logout error:", error);
   }
 }
 
-// Setup reaction buttons (like/dislike)
+// Setup reaction buttons
 function setupReactionButtons() {
-  const likeButtons = document.querySelectorAll(".like-button");
-  const dislikeButtons = document.querySelectorAll(".dislike-button");
-
-  // Add event listeners for like buttons
-  likeButtons.forEach((button) => {
-    button.addEventListener("click", () => handleReaction(button));
-  });
-
-  // Add event listeners for dislike buttons
-  dislikeButtons.forEach((button) => {
-    button.addEventListener("click", () => handleReaction(button));
-  });
+  document
+    .querySelectorAll(".like-button, .dislike-button")
+    .forEach((button) => {
+      button.addEventListener("click", () => handleReaction(button));
+    });
 }
 
-// Handle a reaction (like/dislike)
+// Handle like/dislike reactions
 async function handleReaction(button) {
   // Check if user is logged in
   if (!state.sessionID) {
@@ -764,7 +686,6 @@ async function handleReaction(button) {
   const isComment = button.getAttribute("data-for") === "comment";
   const reactionType = button.getAttribute("data-type");
 
-  // Create form data
   const formData = new FormData();
   formData.append("item_id", itemId);
   formData.append("is_comment", isComment);
@@ -777,15 +698,13 @@ async function handleReaction(button) {
     });
 
     if (response.ok) {
-      // Reaction recorded successfully, refresh the current view
+      // Reaction recorded, refresh the current view
       if (window.location.pathname === "/post") {
         const postId = new URLSearchParams(window.location.search).get("id");
         fetchSinglePost(postId);
       } else {
         fetchPosts();
       }
-    } else {
-      console.error("Reaction failed");
     }
   } catch (error) {
     console.error("Reaction error:", error);
