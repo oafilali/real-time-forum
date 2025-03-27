@@ -47,10 +47,10 @@ function updateAuthBox() {
   if (state.sessionID && state.username) {
     // User is logged in
     authBox.innerHTML = `
-        <p>Logged in as: <strong>${state.username}</strong></p>
-        <a href="/createPost" data-navigate>Create Post</a>
-        <a href="#" id="logout-link">Logout</a>
-      `;
+          <p>Logged in as: <strong>${state.username}</strong></p>
+          <a href="/createPost" data-navigate>Create Post</a>
+          <a href="#" id="logout-link">Logout</a>
+        `;
 
     // Add logout event listener
     document
@@ -59,9 +59,9 @@ function updateAuthBox() {
   } else {
     // User is not logged in
     authBox.innerHTML = `
-        <a href="/login" data-navigate>Login</a>
-        <a href="/register" data-navigate>Register</a>
-      `;
+          <a href="/login" data-navigate>Login</a>
+          <a href="/register" data-navigate>Register</a>
+        `;
   }
 }
 
@@ -70,27 +70,27 @@ function updateSidebar() {
   const sidebar = document.getElementById("sidebar");
 
   sidebar.innerHTML = `
-      <h2>Categories:</h2>
-      <p><a href="/filter?category=General" data-navigate>General</a></p>
-      <p><a href="/filter?category=Local%20News%20%26%20Events" data-navigate>Local News & Events</a></p>
-      <p><a href="/filter?category=Viking%20line" data-navigate>Viking line</a></p>
-      <p><a href="/filter?category=Travel" data-navigate>Travel</a></p>
-      <p><a href="/filter?category=Sailing" data-navigate>Sailing</a></p>
-      <p><a href="/filter?category=Cuisine%20%26%20food" data-navigate>Cuisine & food</a></p>
-      <p><a href="/filter?category=Politics" data-navigate>Politics</a></p>
-      ${
-        state.sessionID
-          ? `
-        <h2>Filters:</h2>
-        <p><a href="/filter?user_created=true" data-navigate>My Posts</a></p>
-        <p><a href="/filter?liked=true" data-navigate>Liked Posts</a></p>
-      `
-          : ""
-      }
-      <div class="category-button">
-        <a href="/" data-navigate class="back-to-home">Back to Home</a>
-      </div>
-    `;
+        <h2>Categories:</h2>
+        <p><a href="/filter?category=General" data-navigate>General</a></p>
+        <p><a href="/filter?category=Local%20News%20%26%20Events" data-navigate>Local News & Events</a></p>
+        <p><a href="/filter?category=Viking%20line" data-navigate>Viking line</a></p>
+        <p><a href="/filter?category=Travel" data-navigate>Travel</a></p>
+        <p><a href="/filter?category=Sailing" data-navigate>Sailing</a></p>
+        <p><a href="/filter?category=Cuisine%20%26%20food" data-navigate>Cuisine & food</a></p>
+        <p><a href="/filter?category=Politics" data-navigate>Politics</a></p>
+        ${
+          state.sessionID
+            ? `
+          <h2>Filters:</h2>
+          <p><a href="/filter?user_created=true" data-navigate>My Posts</a></p>
+          <p><a href="/filter?liked=true" data-navigate>Liked Posts</a></p>
+        `
+            : ""
+        }
+        <div class="category-button">
+          <a href="/" data-navigate class="back-to-home">Back to Home</a>
+        </div>
+      `;
 }
 
 // Setup navigation for SPA
@@ -130,10 +130,10 @@ function handleRoute() {
     fetchPosts();
   } else if (path === "/post") {
     const postId = searchParams.get("id");
-    if (postId) {
+    if (postId && postId !== "undefined") {
       fetchSinglePost(postId);
     } else {
-      showError("Post ID is missing");
+      showError("Post ID is missing or invalid");
     }
   } else if (path === "/filter") {
     const category = searchParams.get("category");
@@ -168,43 +168,58 @@ async function fetchPosts() {
   contentElement.innerHTML = '<div class="loading">Loading posts...</div>';
 
   try {
-    const response = await fetch("/");
+    console.log("Fetching homepage posts...");
+    // Add a query parameter to ensure it's treated as an API request
+    const response = await fetch("/?api=true", {
+      headers: {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
     const data = await response.json();
+
+    // Debug output
+    console.log("Fetched home data:", data);
 
     state.posts = data.Posts || [];
 
     if (state.posts.length > 0) {
       contentElement.innerHTML = `
-          <h2>All posts</h2>
-          ${state.posts
-            .map(
-              (post) => `
-            <div class="post">
-              <h2><a href="/post?id=${post.ID}" data-navigate>${post.Title}</a></h2>
-              <p>${post.Content}</p>
-              <div class="post-meta">
-                <div class="left">
-                  <span class="username">${post.Username}</span>
-                  <span class="date">${post.Date}</span>
-                </div>
-                <div class="right">
-                  <button class="like-button" data-id="${post.ID}" data-type="like" data-for="post">👍 ${post.Likes}</button>
-                  <button class="dislike-button" data-id="${post.ID}" data-type="dislike" data-for="post">👎 ${post.Dislikes}</button>
+            <h2>All posts</h2>
+            ${state.posts
+              .map(
+                (post) => `
+              <div class="post">
+                <h2><a href="/post?id=${post.ID}" data-navigate>${post.Title}</a></h2>
+                <p>${post.Content}</p>
+                <div class="post-meta">
+                  <div class="left">
+                    <span class="username">${post.Username}</span>
+                    <span class="date">${post.Date}</span>
+                  </div>
+                  <div class="right">
+                    <button class="like-button" data-id="${post.ID}" data-type="like" data-for="post">👍 ${post.Likes}</button>
+                    <button class="dislike-button" data-id="${post.ID}" data-type="dislike" data-for="post">👎 ${post.Dislikes}</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          `
-            )
-            .join("")}
-        `;
+            `
+              )
+              .join("")}
+          `;
 
       // Add event listeners for like/dislike buttons
       setupReactionButtons();
     } else {
       contentElement.innerHTML = `
-          <h2>All posts</h2>
-          <p>No posts available.</p>
-        `;
+            <h2>All posts</h2>
+            <p>No posts available.</p>
+          `;
     }
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -220,14 +235,25 @@ async function fetchSinglePost(postId) {
 
   try {
     console.log("Fetching post with ID:", postId);
-    const response = await fetch(`/post?id=${postId}`);
-    const data = await response.json();
+
+    if (!postId || postId === "undefined" || postId === "null") {
+      throw new Error("Invalid post ID");
+    }
+
+    const response = await fetch(`/post?id=${postId}`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
       throw new Error(
-        `Server returned ${response.status}: ${data.message || "Unknown error"}`
+        `Server returned ${response.status}: ${await response.text()}`
       );
     }
+
+    const data = await response.json();
+    console.log("Post data received:", data);
 
     state.currentPost = data.post || data.Post;
 
@@ -239,61 +265,61 @@ async function fetchSinglePost(postId) {
     }
 
     contentElement.innerHTML = `
-        <div class="post" id="post-${state.currentPost.ID}">
-          <h2>Category: ${state.currentPost.Category}</h2>
-          <h3>${state.currentPost.Title}</h3>
-          <p>${state.currentPost.Username}:</p>
-          <p>${state.currentPost.Content}</p>
-  
-          <div class="post-actions">
-            <button class="like-button" data-id="${
-              state.currentPost.ID
-            }" data-type="like" data-for="post">
-              👍 <span>${state.currentPost.Likes}</span>
-            </button>
-            <button class="dislike-button" data-id="${
-              state.currentPost.ID
-            }" data-type="dislike" data-for="post">
-              👎 <span>${state.currentPost.Dislikes}</span>
-            </button>
-          </div>
-  
-          <h3>Comments</h3>
-          <div id="comments-container">
-            ${
-              state.currentPost.Comments &&
-              state.currentPost.Comments.length > 0
-                ? state.currentPost.Comments.map(
-                    (comment) => `
-                <div class="comment">
-                  <p>${comment.Username}:</p>
-                  <p>${comment.Content}</p>
-                  <div class="comment-actions">
-                    <button class="like-button" data-id="${comment.ID}" data-type="like" data-for="comment">
-                      👍 <span>${comment.Likes}</span>
-                    </button>
-                    <button class="dislike-button" data-id="${comment.ID}" data-type="dislike" data-for="comment">
-                      👎 <span>${comment.Dislikes}</span>
-                    </button>
+          <div class="post" id="post-${state.currentPost.ID}">
+            <h2>Category: ${state.currentPost.Category}</h2>
+            <h3>${state.currentPost.Title}</h3>
+            <p>${state.currentPost.Username}:</p>
+            <p>${state.currentPost.Content}</p>
+    
+            <div class="post-actions">
+              <button class="like-button" data-id="${
+                state.currentPost.ID
+              }" data-type="like" data-for="post">
+                👍 <span>${state.currentPost.Likes}</span>
+              </button>
+              <button class="dislike-button" data-id="${
+                state.currentPost.ID
+              }" data-type="dislike" data-for="post">
+                👎 <span>${state.currentPost.Dislikes}</span>
+              </button>
+            </div>
+    
+            <h3>Comments</h3>
+            <div id="comments-container">
+              ${
+                state.currentPost.Comments &&
+                state.currentPost.Comments.length > 0
+                  ? state.currentPost.Comments.map(
+                      (comment) => `
+                  <div class="comment">
+                    <p>${comment.Username}:</p>
+                    <p>${comment.Content}</p>
+                    <div class="comment-actions">
+                      <button class="like-button" data-id="${comment.ID}" data-type="like" data-for="comment">
+                        👍 <span>${comment.Likes}</span>
+                      </button>
+                      <button class="dislike-button" data-id="${comment.ID}" data-type="dislike" data-for="comment">
+                        👎 <span>${comment.Dislikes}</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              `
-                  ).join("")
-                : "<p>No comments yet.</p>"
+                `
+                    ).join("")
+                  : "<p>No comments yet.</p>"
+              }
+            </div>
+    
+            ${
+              state.sessionID
+                ? `<form id="comment-form">
+                  <input type="hidden" name="post_id" value="${state.currentPost.ID}">
+                  <textarea name="content" class="comment-box" placeholder="Add a comment..." required></textarea>
+                  <button type="submit">Add Comment</button>
+                </form>`
+                : `<p>You must be logged in to add a comment. <a href="/login" data-navigate>Login</a></p>`
             }
           </div>
-  
-          ${
-            state.sessionID
-              ? `<form id="comment-form">
-                <input type="hidden" name="post_id" value="${state.currentPost.ID}">
-                <textarea name="content" class="comment-box" placeholder="Add a comment..." required></textarea>
-                <button type="submit">Add Comment</button>
-              </form>`
-              : `<p>You must be logged in to add a comment. <a href="/login" data-navigate>Login</a></p>`
-          }
-        </div>
-      `;
+        `;
 
     // Setup reaction buttons
     setupReactionButtons();
@@ -317,8 +343,18 @@ async function fetchFilteredPosts(queryString) {
 
   try {
     // Build the query string
-    const response = await fetch(`/filter${queryString}`);
+    const response = await fetch(`/filter${queryString}`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
     const data = await response.json();
+    console.log("Filtered posts data:", data);
 
     state.posts = data.posts || [];
 
@@ -335,23 +371,25 @@ async function fetchFilteredPosts(queryString) {
 
     if (state.posts.length > 0) {
       contentElement.innerHTML = `
-          <h2>${title}</h2>
-          ${state.posts
-            .map(
-              (post) => `
-            <div class="post">
-              <h2><a href="/post?id=${post.ID}" data-navigate>${post.Title}</a></h2>
-              <p>Category: ${post.Category}</p>
-            </div>
-          `
-            )
-            .join("")}
-        `;
+            <h2>${title}</h2>
+            ${state.posts
+              .map(
+                (post) => `
+              <div class="post">
+                <h2><a href="/post?id=${post.id || post.ID}" data-navigate>${
+                  post.title || post.Title
+                }</a></h2>
+                <p>Category: ${post.category || post.Category}</p>
+              </div>
+            `
+              )
+              .join("")}
+          `;
     } else {
       contentElement.innerHTML = `
-          <h2>${title}</h2>
-          <p>No posts found.</p>
-        `;
+            <h2>${title}</h2>
+            <p>No posts found.</p>
+          `;
     }
   } catch (error) {
     console.error("Error fetching filtered posts:", error);
@@ -365,21 +403,21 @@ function showLoginForm() {
   const contentElement = document.getElementById("content");
 
   contentElement.innerHTML = `
-      <div class="auth-form">
-        <h1>Login</h1>
-        <div id="login-error" class="error" style="display: none;"></div>
-        <form id="login-form">
-          <label for="email">Email:</label>
-          <input type="email" id="email" name="email" required>
-          
-          <label for="password">Password:</label>
-          <input type="password" id="password" name="password" required>
-          
-          <button type="submit">Login</button>
-        </form>
-        <p>Don't have an account? <a href="/register" data-navigate>Register here</a></p>
-      </div>
-    `;
+        <div class="auth-form">
+          <h1>Login</h1>
+          <div id="login-error" class="error" style="display: none;"></div>
+          <form id="login-form">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">Login</button>
+          </form>
+          <p>Don't have an account? <a href="/register" data-navigate>Register here</a></p>
+        </div>
+      `;
 
   // Add form submit event listener
   document.getElementById("login-form").addEventListener("submit", handleLogin);
@@ -390,24 +428,24 @@ function showRegisterForm() {
   const contentElement = document.getElementById("content");
 
   contentElement.innerHTML = `
-      <div class="auth-form">
-        <h1>Register</h1>
-        <div id="register-error" class="error" style="display: none;"></div>
-        <form id="register-form">
-          <label for="username">Username:</label>
-          <input type="text" id="username" name="username" required>
-          
-          <label for="email">Email:</label>
-          <input type="email" id="email" name="email" required>
-          
-          <label for="password">Password:</label>
-          <input type="password" id="password" name="password" required>
-          
-          <button type="submit">Register</button>
-        </form>
-        <p>Already have an account? <a href="/login" data-navigate>Login here</a></p>
-      </div>
-    `;
+        <div class="auth-form">
+          <h1>Register</h1>
+          <div id="register-error" class="error" style="display: none;"></div>
+          <form id="register-form">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">Register</button>
+          </form>
+          <p>Already have an account? <a href="/login" data-navigate>Login here</a></p>
+        </div>
+      `;
 
   // Add form submit event listener
   document
@@ -420,29 +458,29 @@ function showCreatePostForm() {
   const contentElement = document.getElementById("content");
 
   contentElement.innerHTML = `
-      <div class="form-container">
-        <h2>Create a Post</h2>
-        <form id="create-post-form">
-          <label for="title">Title:</label>
-          <input type="text" id="title" name="title" required>
-          
-          <label for="content">Content:</label>
-          <textarea id="content" name="content" required></textarea>
-          
-          <div class="checkbox-container">
-            <label><input type="checkbox" name="categories" value="General"> General</label>
-            <label><input type="checkbox" name="categories" value="Local News & Events"> Local News & Events</label>
-            <label><input type="checkbox" name="categories" value="Viking line"> Viking Line</label>
-            <label><input type="checkbox" name="categories" value="Travel"> Travel</label>
-            <label><input type="checkbox" name="categories" value="Sailing"> Sailing</label>
-            <label><input type="checkbox" name="categories" value="Cuisine & food"> Cuisine & Food</label>
-            <label><input type="checkbox" name="categories" value="Politics"> Politics</label>
-          </div>
-          
-          <button type="submit">Post</button>
-        </form>
-      </div>
-    `;
+        <div class="form-container">
+          <h2>Create a Post</h2>
+          <form id="create-post-form">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" required>
+            
+            <label for="content">Content:</label>
+            <textarea id="content" name="content" required></textarea>
+            
+            <div class="checkbox-container">
+              <label><input type="checkbox" name="categories" value="General"> General</label>
+              <label><input type="checkbox" name="categories" value="Local News & Events"> Local News & Events</label>
+              <label><input type="checkbox" name="categories" value="Viking line"> Viking Line</label>
+              <label><input type="checkbox" name="categories" value="Travel"> Travel</label>
+              <label><input type="checkbox" name="categories" value="Sailing"> Sailing</label>
+              <label><input type="checkbox" name="categories" value="Cuisine & food"> Cuisine & Food</label>
+              <label><input type="checkbox" name="categories" value="Politics"> Politics</label>
+            </div>
+            
+            <button type="submit">Post</button>
+          </form>
+        </div>
+      `;
 
   // Add form submit event listener
   document
@@ -455,14 +493,14 @@ function showError(message) {
   const contentElement = document.getElementById("content");
 
   contentElement.innerHTML = `
-      <div class="error-container">
-        <h1>Error</h1>
-        <p>${message}</p>
-        <div class="category-button">
-          <a href="/" data-navigate class="back-to-home">Back to Home</a>
+        <div class="error-container">
+          <h1>Error</h1>
+          <p>${message}</p>
+          <div class="category-button">
+            <a href="/" data-navigate class="back-to-home">Back to Home</a>
+          </div>
         </div>
-      </div>
-    `;
+      `;
 }
 
 // Handle login form submission

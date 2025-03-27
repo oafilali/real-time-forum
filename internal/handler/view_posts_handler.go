@@ -20,9 +20,11 @@ func ViewPostHandler(w http.ResponseWriter, r *http.Request) {
 
     // Get the post ID from the URL query parameter
     postID := r.URL.Query().Get("id")
-    if postID == "" {
-        log.Println("Missing PostID in request")
-        util.ExecuteJSON(w, model.MsgData{"Missing PostID!"}, http.StatusBadRequest)
+    log.Printf("ViewPostHandler called with postID: %s", postID)
+    
+    if postID == "" || postID == "undefined" || postID == "null" {
+        log.Println("Missing or invalid PostID in request:", postID)
+        util.ExecuteJSON(w, model.MsgData{"Missing or invalid PostID"}, http.StatusBadRequest)
         return
     }
     

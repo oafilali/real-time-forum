@@ -16,6 +16,10 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Enhanced debugging with all headers that might be relevant
+	log.Printf("HomeHandler called with headers - Accept: %s, X-Requested-With: %s, Query params: %v",
+		r.Header.Get("Accept"), r.Header.Get("X-Requested-With"), r.URL.Query())
+	
 	userID, _ := session.GetUserIDFromSession(r)
 	var username string
 	if userID > 0 {
@@ -29,6 +33,14 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Debug the fetched posts with more details
+	log.Printf("Fetched %d posts for home page, returning JSON response", len(allPosts))
+	
+	// Debugging for the first post if available
+	if len(allPosts) > 0 {
+		log.Printf("First post sample: ID=%d, Title=%s", allPosts[0].ID, allPosts[0].Title)
+	}
+	
 	if len(allPosts) > 5 {
 		allPosts = allPosts[:5]
 	}
@@ -40,5 +52,6 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return JSON response
+	log.Println("Returning JSON response for home page")
 	util.ExecuteJSON(w, data, http.StatusOK)
 }
