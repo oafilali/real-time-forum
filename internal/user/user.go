@@ -56,26 +56,39 @@ func HashPassword(password string) (string, error) {
 	return string(hashed), err
 }
 
-func SaveUser(username, email, hashedPassword string) error {
+func SaveUser(username, email, hashedPassword, firstName, lastName, gender string, age int) error {
 	_, err := database.Db.Exec(
-		"INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-		username, email, hashedPassword,
+		"INSERT INTO users (username, email, password, first_name, last_name, age, gender) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		username, email, hashedPassword, firstName, lastName, age, gender,
 	)
 	return err
 }
 
-func AuthenticateUser(email, password string) (int, error) {
+func AuthenticateUser(identifier, password string) (int, error) {
 	var userID int
 	var storedHash string
+	
+	// First try with email
 	err := database.Db.QueryRow(
 		"SELECT id, password FROM users WHERE email = ?",
-		email,
+		identifier,
 	).Scan(&userID, &storedHash)
+	
 	if err != nil {
-		return 0, err
+		// If not found by email, try with username
+		err = database.Db.QueryRow(
+			"SELECT id, password FROM users WHERE username = ?",
+			identifier,
+		).Scan(&userID, &storedHash)
+		
+		if err != nil {
+			return 0, err
+		}
 	}
+	
 	if bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password)) != nil {
 		return 0, fmt.Errorf("invalid password")
 	}
+	
 	return userID, nil
 }

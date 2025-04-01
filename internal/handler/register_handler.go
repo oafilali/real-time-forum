@@ -6,6 +6,7 @@ import (
 	"forum/internal/util"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,6 +17,23 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	email := r.FormValue("email")
 	password := r.FormValue("password")
+	firstName := r.FormValue("first_name")
+	lastName := r.FormValue("last_name")
+	ageStr := r.FormValue("age")
+	gender := r.FormValue("gender")
+
+	// Validate required fields
+	if username == "" || email == "" || password == "" || firstName == "" || lastName == "" || ageStr == "" || gender == "" {
+		util.ExecuteJSON(w, model.MsgData{"All fields are required"}, http.StatusBadRequest)
+		return
+	}
+
+	// Parse age
+	age, err := strconv.Atoi(ageStr)
+	if err != nil || age <= 0 {
+		util.ExecuteJSON(w, model.MsgData{"Invalid age"}, http.StatusBadRequest)
+		return
+	}
 
 	// Validate email format
 	if !util.IsValidEmail(email) {
@@ -56,7 +74,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save user to the database
-	if err := user.SaveUser(username, email, hashed); err != nil {
+	if err := user.SaveUser(username, email, hashed, firstName, lastName, gender, age); err != nil {
 		log.Println("User registration failed:", err)
 		util.ExecuteJSON(w, model.MsgData{"User registration failed"}, http.StatusInternalServerError)
 		return

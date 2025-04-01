@@ -52,3 +52,13 @@ type PostData struct {
 	Title    string `json:"title"`
 	Category string `json:"category"`
 }
+
+type User struct {
+	ID        int
+	Username  string
+	Email     string
+	FirstName string
+	LastName  string
+	Age       int
+	Gender    string
+}

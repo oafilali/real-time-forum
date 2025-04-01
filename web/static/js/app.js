@@ -1,6 +1,6 @@
-// app.js - Simplified main application file for SPA
+// app.js - Main application for Forum SPA
 
-// Application state
+// Global application state
 const state = {
   sessionID: null,
   username: null,
@@ -8,119 +8,135 @@ const state = {
   currentPost: null,
 }
 
-// Make state available globally for template access
+// Make state available for templates
 window.state = state
 
-// Initialize the app when DOM is loaded
-document.addEventListener("DOMContentLoaded", init)
+// Initialize the application
+document.addEventListener("DOMContentLoaded", async function () {
+  await checkLogin()
+  setupNavigationEvents()
+  loadCurrentPage()
+})
 
-async function init() {
-  // Check user login status
-  await checkUserStatus()
-
-  // Set up navigation
-  setupNavigation()
-
-  // Handle the current route
-  handleRoute()
-}
+// AUTH & USER FUNCTIONS
+// ---------------------
 
 // Check if user is logged in
-async function checkUserStatus() {
+async function checkLogin() {
   try {
     const response = await fetch("/user/status")
     const data = await response.json()
-
     state.sessionID = data.sessionID
     state.username = data.username
-
-    // Update UI elements based on login status
-    updateAuthBox()
-    updateSidebar()
+    updateUI()
   } catch (error) {
-    console.error("Error checking user status:", error)
+    console.error("Login check failed:", error)
   }
 }
 
-// Update the authentication box in the header
-function updateAuthBox() {
-  const authBox = document.getElementById("auth-box")
-  authBox.innerHTML = templates.authBox(state.sessionID, state.username)
+// Update UI elements after login status change
+function updateUI() {
+  // Update auth box
+  document.getElementById("auth-box").innerHTML = templates.authBox(
+    state.sessionID,
+    state.username
+  )
 
-  // Add event listener for logout if user is logged in
+  // Add logout event listener if logged in
   if (state.sessionID) {
     document
       .getElementById("logout-link")
       .addEventListener("click", handleLogout)
   }
+
+  // Update sidebar
+  document.getElementById("sidebar").innerHTML = templates.sidebar(
+    state.sessionID
+  )
 }
 
-// Update the sidebar categories and filters
-function updateSidebar() {
-  const sidebar = document.getElementById("sidebar")
-  sidebar.innerHTML = templates.sidebar(state.sessionID)
-}
+// Handle logout
+async function handleLogout(event) {
+  event.preventDefault()
 
-// Set up SPA navigation
-function setupNavigation() {
-  // Handle link clicks with data-navigate attribute
-  document.addEventListener("click", (event) => {
-    const link = event.target.closest("[data-navigate]")
-    if (link) {
-      event.preventDefault()
-      navigateTo(link.getAttribute("href"))
+  try {
+    const response = await fetch("/logout", { method: "POST" })
+    if (response.ok) {
+      state.sessionID = null
+      state.username = null
+      updateUI()
+      navigate("/")
     }
-  })
-
-  // Handle browser back/forward buttons
-  window.addEventListener("popstate", handleRoute)
-}
-
-// Navigate to a URL
-function navigateTo(url) {
-  history.pushState(null, "", url)
-  handleRoute()
-}
-
-// Route handler - determines what to show based on URL
-function handleRoute() {
-  const path = window.location.pathname
-  const searchParams = new URLSearchParams(window.location.search)
-
-  // Show loading state
-  document.getElementById("content").innerHTML = templates.loading()
-
-  // Handle different routes
-  if (path === "/" || path === "/index.html") {
-    fetchPosts()
-  } else if (path === "/post") {
-    const postId = searchParams.get("id")
-    if (postId && postId !== "undefined") {
-      fetchSinglePost(postId)
-    } else {
-      showError("Post ID is missing or invalid")
-    }
-  } else if (path === "/filter") {
-    fetchFilteredPosts(window.location.search)
-  } else if (path === "/login") {
-    showLoginForm()
-  } else if (path === "/register") {
-    showRegisterForm()
-  } else if (path === "/createPost") {
-    if (state.sessionID) {
-      showCreatePostForm()
-    } else {
-      navigateTo("/login")
-    }
-  } else {
-    showError("Page not found")
+  } catch (error) {
+    console.error("Logout failed:", error)
   }
 }
 
-// Fetch posts for homepage
-async function fetchPosts() {
-  const contentElement = document.getElementById("content")
+// NAVIGATION FUNCTIONS
+// -------------------
 
+// Set up navigation event listeners
+function setupNavigationEvents() {
+  // Handle link clicks with data-navigate attribute
+  document.addEventListener("click", function (event) {
+    const link = event.target.closest("[data-navigate]")
+    if (link) {
+      event.preventDefault()
+      navigate(link.getAttribute("href"))
+    }
+  })
+
+  // Handle browser back/forward
+  window.addEventListener("popstate", loadCurrentPage)
+}
+
+// Navigate to a new page
+function navigate(url) {
+  history.pushState(null, "", url)
+  loadCurrentPage()
+}
+
+// Determine what to show based on current URL
+function loadCurrentPage() {
+  const path = window.location.pathname
+  const searchParams = new URLSearchParams(window.location.search)
+  const content = document.getElementById("content")
+
+  // Show loading indicator
+  content.innerHTML = templates.loading()
+
+  // Route to correct page handler
+  if (path === "/" || path === "/index.html") {
+    loadHomePage()
+  } else if (path === "/post") {
+    const postId = searchParams.get("id")
+    if (postId && postId !== "undefined") {
+      loadPostPage(postId)
+    } else {
+      showErrorPage("Post ID is missing or invalid")
+    }
+  } else if (path === "/filter") {
+    loadFilteredPosts(window.location.search)
+  } else if (path === "/login") {
+    showLoginPage()
+  } else if (path === "/register") {
+    showRegisterPage()
+  } else if (path === "/createPost") {
+    if (state.sessionID) {
+      showCreatePostPage()
+    } else {
+      navigate("/login")
+    }
+  } else {
+    showErrorPage("Page not found")
+  }
+}
+
+// PAGE LOADERS
+// ------------
+
+// Load the home page with all posts
+async function loadHomePage() {
   try {
     const response = await fetch("/?api=true", {
       headers: {
@@ -129,77 +145,63 @@ async function fetchPosts() {
       },
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`)
-    }
+    if (!response.ok) throw new Error("Failed to load posts")
 
     const data = await response.json()
     state.posts = data.Posts || []
 
-    // Display posts using template
-    contentElement.innerHTML = templates.homePage(state.posts)
-
-    // Set up reaction buttons
+    document.getElementById("content").innerHTML = templates.homePage(
+      state.posts
+    )
     setupReactionButtons()
   } catch (error) {
-    console.error("Error fetching posts:", error)
-    contentElement.innerHTML = templates.error(
-      "Failed to load posts. Please try again later."
+    console.error("Error:", error)
+    document.getElementById("content").innerHTML = templates.error(
+      "Failed to load posts"
     )
   }
 }
 
-// Fetch a single post
-async function fetchSinglePost(postId) {
-  const contentElement = document.getElementById("content")
-
+// Load a single post page
+async function loadPostPage(postId) {
   try {
     const response = await fetch(`/post?id=${postId}`, {
       headers: { Accept: "application/json" },
     })
 
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`)
-    }
+    if (!response.ok) throw new Error("Failed to load post")
 
     const data = await response.json()
     state.currentPost = data.post || data.Post
 
-    if (!state.currentPost || !state.currentPost.ID) {
-      throw new Error("Invalid post data")
-    }
+    document.getElementById("content").innerHTML = templates.postDetail(
+      state.currentPost
+    )
 
-    // Display post and comments using template
-    contentElement.innerHTML = templates.postDetail(state.currentPost)
-
-    // Set up reaction buttons
+    // Setup reaction buttons
     setupReactionButtons()
 
-    // Set up comment form if logged in
+    // Setup comment form submission
     const commentForm = document.getElementById("comment-form")
     if (commentForm) {
-      commentForm.addEventListener("submit", handleAddComment)
+      commentForm.addEventListener("submit", submitComment)
     }
   } catch (error) {
-    console.error("Error fetching post:", error)
-    contentElement.innerHTML = templates.error(
-      `Failed to load post: ${error.message}`
+    console.error("Error:", error)
+    document.getElementById("content").innerHTML = templates.error(
+      "Failed to load post"
     )
   }
 }
 
-// Fetch filtered posts
-async function fetchFilteredPosts(queryString) {
-  const contentElement = document.getElementById("content")
-
+// Load filtered posts
+async function loadFilteredPosts(queryString) {
   try {
     const response = await fetch(`/filter${queryString}`, {
       headers: { Accept: "application/json" },
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`)
-    }
+    if (!response.ok) throw new Error("Failed to load filtered posts")
 
     const data = await response.json()
     state.posts = data.posts || []
@@ -214,53 +216,56 @@ async function fetchFilteredPosts(queryString) {
       title = "Liked Posts"
     }
 
-    // Display posts using template
-    contentElement.innerHTML = templates.filteredPosts(title, state.posts)
+    document.getElementById("content").innerHTML = templates.filteredPosts(
+      title,
+      state.posts
+    )
   } catch (error) {
-    console.error("Error fetching filtered posts:", error)
-    contentElement.innerHTML = templates.error(
-      "Failed to load posts. Please try again later."
+    console.error("Error:", error)
+    document.getElementById("content").innerHTML = templates.error(
+      "Failed to load filtered posts"
     )
   }
 }
 
-// Show login form
-function showLoginForm() {
-  const contentElement = document.getElementById("content")
-  contentElement.innerHTML = templates.loginForm()
-  document.getElementById("login-form").addEventListener("submit", handleLogin)
+// FORM PAGES
+// ----------
+
+// Show login page
+function showLoginPage() {
+  document.getElementById("content").innerHTML = templates.loginForm()
+  document.getElementById("login-form").addEventListener("submit", submitLogin)
 }
 
-// Show registration form
-function showRegisterForm() {
-  const contentElement = document.getElementById("content")
-  contentElement.innerHTML = templates.registerForm()
+// Show register page
+function showRegisterPage() {
+  document.getElementById("content").innerHTML = templates.registerForm()
   document
     .getElementById("register-form")
-    .addEventListener("submit", handleRegister)
+    .addEventListener("submit", submitRegister)
 }
 
-// Show create post form
-function showCreatePostForm() {
-  const contentElement = document.getElementById("content")
-  contentElement.innerHTML = templates.createPostForm()
+// Show create post page
+function showCreatePostPage() {
+  document.getElementById("content").innerHTML = templates.createPostForm()
   document
     .getElementById("create-post-form")
-    .addEventListener("submit", handleCreatePost)
+    .addEventListener("submit", submitPost)
 }
 
-// Show error message
-function showError(message) {
-  const contentElement = document.getElementById("content")
-  contentElement.innerHTML = templates.error(message)
+// Show error page
+function showErrorPage(message) {
+  document.getElementById("content").innerHTML = templates.error(message)
 }
+
+// FORM SUBMISSION HANDLERS
+// -----------------------
 
 // Handle login form submission
-async function handleLogin(event) {
+async function submitLogin(event) {
   event.preventDefault()
 
-  const form = event.target
-  const formData = new FormData(form)
+  const formData = new FormData(event.target)
 
   try {
     const response = await fetch("/login", {
@@ -270,18 +275,16 @@ async function handleLogin(event) {
 
     const data = await response.json()
 
-    if (response.ok) {
+    if (response.ok && data.sessionID) {
       // Login successful
       state.sessionID = data.sessionID
       state.username = data.username
-
-      updateAuthBox()
-      updateSidebar()
-      navigateTo("/")
+      updateUI()
+      navigate("/")
     } else {
-      // Show error message
+      // Login failed - show error
       const errorElement = document.getElementById("login-error")
-      errorElement.textContent = data.message
+      errorElement.textContent = data.message || "Login failed"
       errorElement.style.display = "block"
     }
   } catch (error) {
@@ -293,11 +296,26 @@ async function handleLogin(event) {
 }
 
 // Handle register form submission
-async function handleRegister(event) {
+async function submitRegister(event) {
   event.preventDefault()
 
-  const form = event.target
-  const formData = new FormData(form)
+  const formData = new FormData(event.target)
+
+  // Basic validation
+  const age = parseInt(formData.get("age"))
+  if (isNaN(age) || age <= 0) {
+    const errorElement = document.getElementById("register-error")
+    errorElement.textContent = "Please enter a valid age"
+    errorElement.style.display = "block"
+    return
+  }
+
+  if (!formData.get("gender")) {
+    const errorElement = document.getElementById("register-error")
+    errorElement.textContent = "Please select a gender"
+    errorElement.style.display = "block"
+    return
+  }
 
   try {
     const response = await fetch("/register", {
@@ -309,11 +327,12 @@ async function handleRegister(event) {
 
     if (response.ok) {
       // Registration successful
-      navigateTo("/login")
+      alert("Registration successful! Please log in.")
+      navigate("/login")
     } else {
-      // Show error message
+      // Registration failed - show error
       const errorElement = document.getElementById("register-error")
-      errorElement.textContent = data.message
+      errorElement.textContent = data.message || "Registration failed"
       errorElement.style.display = "block"
     }
   } catch (error) {
@@ -325,11 +344,10 @@ async function handleRegister(event) {
 }
 
 // Handle create post submission
-async function handleCreatePost(event) {
+async function submitPost(event) {
   event.preventDefault()
 
-  const form = event.target
-  const formData = new FormData(form)
+  const formData = new FormData(event.target)
 
   try {
     const response = await fetch("/createPost", {
@@ -339,11 +357,9 @@ async function handleCreatePost(event) {
 
     const data = await response.json()
 
-    if (response.ok) {
-      // Successfully created post
-      setTimeout(() => {
-        navigateTo(`/post?id=${data.id}`)
-      }, 300)
+    if (response.ok && data.id) {
+      // Post created successfully
+      setTimeout(() => navigate(`/post?id=${data.id}`), 300)
     } else {
       alert(data.message || "Failed to create post")
     }
@@ -353,12 +369,11 @@ async function handleCreatePost(event) {
   }
 }
 
-// Handle adding comments
-async function handleAddComment(event) {
+// Handle comment submission
+async function submitComment(event) {
   event.preventDefault()
 
-  const form = event.target
-  const formData = new FormData(form)
+  const formData = new FormData(event.target)
   const postId = formData.get("post_id")
 
   try {
@@ -368,55 +383,39 @@ async function handleAddComment(event) {
     })
 
     if (response.ok) {
-      // Comment added, refresh the post
-      fetchSinglePost(postId)
+      // Comment added successfully, reload post
+      loadPostPage(postId)
     } else {
       const data = await response.json()
       alert(data.message || "Failed to add comment")
     }
   } catch (error) {
-    console.error("Add comment error:", error)
+    console.error("Comment error:", error)
     alert("An error occurred. Please try again.")
   }
 }
 
-// Handle logout
-async function handleLogout(event) {
-  event.preventDefault()
+// INTERACTIVE ELEMENTS
+// -------------------
 
-  try {
-    const response = await fetch("/logout", {
-      method: "POST",
-    })
-
-    if (response.ok) {
-      // Logout successful
-      state.sessionID = null
-      state.username = null
-
-      updateAuthBox()
-      updateSidebar()
-      navigateTo("/")
-    }
-  } catch (error) {
-    console.error("Logout error:", error)
-  }
-}
-
-// Setup reaction buttons
+// Set up reaction buttons (likes/dislikes)
 function setupReactionButtons() {
-  document
-    .querySelectorAll(".like-button, .dislike-button")
-    .forEach((button) => {
-      button.addEventListener("click", () => handleReaction(button))
+  const reactionButtons = document.querySelectorAll(
+    ".like-button, .dislike-button"
+  )
+
+  reactionButtons.forEach((button) => {
+    button.addEventListener("click", function () {
+      submitReaction(this)
     })
+  })
 }
 
-// Handle like/dislike reactions
-async function handleReaction(button) {
+// Handle reaction submission (like/dislike)
+async function submitReaction(button) {
   // Check if user is logged in
   if (!state.sessionID) {
-    navigateTo("/login")
+    navigate("/login")
     return
   }
 
@@ -436,12 +435,12 @@ async function handleReaction(button) {
     })
 
     if (response.ok) {
-      // Reaction recorded, refresh the current view
+      // Reaction successful, reload current view
       if (window.location.pathname === "/post") {
         const postId = new URLSearchParams(window.location.search).get("id")
-        fetchSinglePost(postId)
+        loadPostPage(postId)
       } else {
-        fetchPosts()
+        loadHomePage()
       }
     }
   } catch (error) {

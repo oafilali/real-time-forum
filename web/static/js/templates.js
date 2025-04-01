@@ -151,8 +151,8 @@ const templates = {
         <h1>Login</h1>
         <div id="login-error" class="error" style="display: none;"></div>
         <form id="login-form">
-          <label for="email">Email Address:</label>
-          <input type="email" id="email" name="email" required placeholder="Enter your email">
+          <label for="identifier">Username or Email:</label>
+          <input type="text" id="identifier" name="identifier" required placeholder="Enter your username or email">
           
           <label for="password">Password:</label>
           <input type="password" id="password" name="password" required placeholder="Enter your password">
@@ -173,6 +173,24 @@ const templates = {
         <form id="register-form">
           <label for="username">Username:</label>
           <input type="text" id="username" name="username" required placeholder="Choose a username">
+          
+          <label for="first_name">First Name:</label>
+          <input type="text" id="first_name" name="first_name" required placeholder="Enter your first name">
+          
+          <label for="last_name">Last Name:</label>
+          <input type="text" id="last_name" name="last_name" required placeholder="Enter your last name">
+          
+          <label for="age">Age:</label>
+          <input type="number" id="age" name="age" required min="13" placeholder="Enter your age">
+          
+          <label for="gender">Gender:</label>
+          <select id="gender" name="gender" required>
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
           
           <label for="email">Email Address:</label>
           <input type="email" id="email" name="email" required placeholder="Enter your email">

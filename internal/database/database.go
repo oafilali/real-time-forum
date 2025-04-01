@@ -37,7 +37,11 @@ func createTables() {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT UNIQUE,
 			email TEXT UNIQUE,
-			password TEXT
+			password TEXT,
+			first_name TEXT,
+			last_name TEXT,
+			age INTEGER,
+			gender TEXT
 		);`,
 		`CREATE TABLE IF NOT EXISTS posts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,6 +49,7 @@ func createTables() {
 			title TEXT,
 			content TEXT,
 			category TEXT,
+			date DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY(user_id) REFERENCES users(id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS comments (

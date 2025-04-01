@@ -16,18 +16,19 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	email := r.FormValue("email")
+	// Get either email or username as identifier
+	identifier := r.FormValue("identifier")
 	password := r.FormValue("password")
 
-	if !util.IsValidEmail(email) {
-		util.ExecuteJSON(w, model.MsgData{"Invalid email format"}, http.StatusBadRequest)
+	if identifier == "" || password == "" {
+		util.ExecuteJSON(w, model.MsgData{"Identifier and password are required"}, http.StatusBadRequest)
 		return
 	}
 
-	userID, err := user.AuthenticateUser(email, password)
+	userID, err := user.AuthenticateUser(identifier, password)
 	if err != nil {
 		log.Println("Invalid credentials:", err)
-		util.ExecuteJSON(w, model.MsgData{"Invalid email or password"}, http.StatusUnauthorized)
+		util.ExecuteJSON(w, model.MsgData{"Invalid identifier or password"}, http.StatusUnauthorized)
 		return
 	}
 
