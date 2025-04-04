@@ -17,12 +17,14 @@
         <!-- Auth box content will be rendered by JS -->
       </div>
     </header>
-    <div id="content">
-      <!-- Default content for non-logged-in users -->
-      <div id="auth-section">
-          <h1>Welcome to the Forum</h1>
-          <button id="login-btn">Login</button>
-          <button id="register-btn">Register</button>
+
+    <div class="main-container">
+      <div id="sidebar" class="categories">
+        <!-- Sidebar content will be rendered by JS -->
+      </div>
+
+      <div id="content" class="posts-feed">
+        <!-- Main content will be rendered by JS -->
       </div>
     </div>
 
@@ -34,6 +36,7 @@
       </div>
       <div id="online-users-list" class="users-list">
         <!-- Users will appear here -->
+        <p class="empty-users-message">No users online</p>
       </div>
     </div>
 
@@ -56,5 +59,7 @@
     <script src="/static/js/templates.js"></script>
     <!-- Main application script -->
     <script src="/static/js/app.js"></script>
+    <!-- Chat functionality -->
+    <script src="/static/js/chat.js"></script>
   </body>
 </html>
