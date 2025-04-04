@@ -619,3 +619,55 @@ button[name="type"]:hover {
     padding: 20px;
   }
 }
+
+/* Add this to your styles.css file to make room for the chat sidebar */
+
+.posts-feed {
+  margin-right: 210px; /* Make room for chat sidebar */
+}
+
+/* Update the main-container to adjust for the chat sidebar */
+.main-container {
+  width: calc(85% - 210px); /* Adjust width to account for chat sidebar */
+  margin-left: auto;
+  margin-right: 210px; /* Match the chat sidebar width */
+}
+
+/* Adjust media queries for responsive design */
+@media (max-width: 768px) {
+  .main-container {
+    width: 95%;
+    margin-right: auto;
+  }
+
+  .posts-feed {
+    margin-right: 0;
+  }
+
+  .chat-sidebar {
+    display: none; /* Hide chat sidebar on mobile by default */
+  }
+
+  /* Add a chat toggle button for mobile */
+  .chat-toggle {
+    display: block;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #0077b6;
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 24px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 999;
+  }
+
+  .chat-sidebar.active {
+    display: block;
+    width: 100%;
+    z-index: 1000;
+  }
+}

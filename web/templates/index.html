@@ -3,6 +3,7 @@
   <head>
     <title>Åland Real-Time Forum</title>
     <link rel="stylesheet" href="/static/css/styles.css" />
+    <link rel="stylesheet" href="/static/css/chat.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
@@ -23,11 +24,37 @@
           <button id="login-btn">Login</button>
           <button id="register-btn">Register</button>
       </div>
-  </div>
+    </div>
+
+    <!-- Chat sidebar -->
+    <div class="chat-sidebar">
+      <div class="chat-header">
+        <h3>Chat</h3>
+        <span id="chat-status">Disconnected</span>
+      </div>
+      <div id="online-users-list" class="users-list">
+        <!-- Users will appear here -->
+      </div>
+    </div>
+
+    <!-- Chat window (hidden by default) -->
+    <div id="chat-window" style="display: none">
+      <div class="chat-header">
+        <h3>Chat with <span id="chat-user-name"></span></h3>
+        <button id="close-chat">×</button>
+      </div>
+      <div id="messages-container" class="messages-container">
+        <!-- Messages will appear here -->
+      </div>
+      <div class="chat-footer">
+        <textarea id="message-input" placeholder="Type a message..."></textarea>
+        <button id="send-message-button">Send</button>
+      </div>
+    </div>
 
     <!-- Templates must be loaded before the main app -->
     <script src="/static/js/templates.js"></script>
     <!-- Main application script -->
-    <script type="module" src="/static/js/app.js"></script>
+    <script src="/static/js/app.js"></script>
   </body>
 </html>

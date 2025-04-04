@@ -14,6 +14,9 @@ func main() {
 	initializeDatabase()
 	defer database.Db.Close()
 	
+	// Initialize the WebSocket hub
+	handler.InitWebSocketHub()
+	
 	// Set up routes and start server
 	startServer()
 }
@@ -34,6 +37,9 @@ func startServer() {
 	http.HandleFunc("/filter", handler.FilterHandler)
 	http.HandleFunc("/post", handler.ViewPostHandler)
 	http.HandleFunc("/user/status", handler.UserStatusHandler) // New endpoint for checking user status
+	
+	// WebSocket endpoint
+	http.HandleFunc("/ws", handler.WebSocketHandler)
 	
 	// Add a handler for the root path - with improved content-type detection
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
