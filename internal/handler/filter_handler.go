@@ -17,6 +17,13 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+    sessionID, err := session.GetUserIDFromSession(r)
+    if err != nil || sessionID == 0 {
+        log.Println("Unauthorized access attempt to view post")
+        util.ExecuteJSON(w, model.MsgData{"Unauthorized: Please log in to view posts"}, http.StatusUnauthorized)
+        return
+    }
+
 	userID, _ := session.GetUserIDFromSession(r) // Get logged-in user ID (if any)
 	var username string
 	if userID > 0 {
@@ -28,7 +35,6 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 	liked := r.URL.Query().Get("liked") == "true"
 
 	var rows *sql.Rows
-	var err error
 
 	if userCreated && userID > 0 {
 		rows, err = database.Db.Query("SELECT id, title, category FROM posts WHERE user_id = ?", userID)

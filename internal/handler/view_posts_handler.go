@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"forum/internal/comment"
 	"forum/internal/database"
 	"forum/internal/model"
@@ -15,6 +16,14 @@ import (
 func ViewPostHandler(w http.ResponseWriter, r *http.Request) {
     if r.Method != "GET" {
         util.ExecuteJSON(w, model.MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
+        return
+    }
+
+    sessionID, err := session.GetUserIDFromSession(r)
+    fmt.Println(sessionID)
+    if err != nil || sessionID == 0 {
+        log.Println("Unauthorized access attempt to view post")
+        util.ExecuteJSON(w, model.MsgData{"Unauthorized: Please log in to view posts"}, http.StatusUnauthorized)
         return
     }
 
@@ -51,12 +60,6 @@ func ViewPostHandler(w http.ResponseWriter, r *http.Request) {
         log.Printf("Failed to load comments for post ID %d: %v", post.ID, err)
         // Continue anyway, just with empty comments
         post.Comments = []model.Comment{}
-    }
-
-    // Pass UserID to the template if logged in
-    sessionID, err := session.GetUserIDFromSession(r)
-    if err != nil {
-        sessionID = 0 // If there's an error, set sessionID to 0
     }
 
     var username string

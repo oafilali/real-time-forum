@@ -236,6 +236,21 @@ const templates = {
         </div>
       </div>
     `,
+  
+  activeUsers: (users) => {
+    if (!users || users.length === 0) {
+      return `<div id="active-users-section"><h2>Active Users</h2><p>No active users.</p></div>`;
+    }
+  
+      return `
+        <div id="active-users-section">
+          <h2>Active Users</h2>
+          <ul>
+            ${users.map(user => `<li>${user.username}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    },
 
   // Helper templates
   loading: () => '<div class="loading">Loading...</div>',

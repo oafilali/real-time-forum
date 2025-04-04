@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Åland Forum</title>
+    <title>Åland Real-Time Forum</title>
     <link rel="stylesheet" href="/static/css/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link
@@ -16,20 +16,18 @@
         <!-- Auth box content will be rendered by JS -->
       </div>
     </header>
-    <div class="main-container">
-      <div id="sidebar" class="categories">
-        <!-- Sidebar content will be rendered by JS -->
+    <div id="content">
+      <!-- Default content for non-logged-in users -->
+      <div id="auth-section">
+          <h1>Welcome to the Forum</h1>
+          <button id="login-btn">Login</button>
+          <button id="register-btn">Register</button>
       </div>
-
-      <div id="content" class="posts-feed">
-        <!-- Main content will be rendered by JS -->
-        <div class="loading">Loading content...</div>
-      </div>
-    </div>
+  </div>
 
     <!-- Templates must be loaded before the main app -->
     <script src="/static/js/templates.js"></script>
     <!-- Main application script -->
-    <script src="/static/js/app.js"></script>
+    <script type="module" src="/static/js/app.js"></script>
   </body>
 </html>

@@ -17,10 +17,11 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID, err := session.GetUserIDFromSession(r)
-	if err != nil {
-		util.ExecuteJSON(w, model.MsgData{"Invalid session, please log in"}, http.StatusUnauthorized)
-		return
-	}
+    if err != nil || sessionID == 0 {
+        log.Println("Unauthorized access attempt to view post")
+        util.ExecuteJSON(w, model.MsgData{"Unauthorized: Please log in to view posts"}, http.StatusUnauthorized)
+        return
+    }
 
 	postID := r.FormValue("post_id")
 	if postID == "" {

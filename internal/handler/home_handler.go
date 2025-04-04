@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"forum/internal/database"
 	"forum/internal/model"
 	"forum/internal/post"
@@ -15,6 +16,14 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		util.ExecuteJSON(w, model.MsgData{"Invalid request method"}, http.StatusMethodNotAllowed)
 		return
 	}
+
+    sessionID, err := session.GetUserIDFromSession(r)
+    fmt.Println(sessionID)
+    if err != nil || sessionID == 0 {
+        log.Println("Unauthorized access attempt to view post")
+        util.ExecuteJSON(w, model.MsgData{"Unauthorized: Please log in to view posts"}, http.StatusUnauthorized)
+        return
+    }
 	
 	// Enhanced debugging with all headers that might be relevant
 	log.Printf("HomeHandler called with headers - Accept: %s, X-Requested-With: %s, Query params: %v",
