@@ -39,10 +39,10 @@ type Hub struct {
 // Message represents a chat message
 type Message struct {
 	Type       string `json:"type"`
-	SenderID   int    `json:"sender_id"`
-	ReceiverID int    `json:"receiver_id"`
-	Content    string `json:"content"`
-	Timestamp  string `json:"timestamp"`
+	SenderID   int    `json:"sender_id,omitempty"`
+	ReceiverID int    `json:"receiverID"` // Match exactly with client-side JSON field name
+	Content    string `json:"content,omitempty"`
+	Timestamp  string `json:"timestamp,omitempty"`
 }
 
 // NewHub creates a new WebSocket hub
@@ -166,10 +166,29 @@ func (c *Client) readPump() {
 
 		log.Printf("Received message from user %d: %s", c.UserID, string(data))
 
-		var message Message
-		if err := json.Unmarshal(data, &message); err != nil {
-			log.Printf("Error unmarshaling message: %v", err)
+		// Parse the raw JSON to get direct access to fields
+		var jsonMap map[string]interface{}
+		if err := json.Unmarshal(data, &jsonMap); err != nil {
+			log.Printf("Error parsing message JSON: %v", err)
 			continue
+		}
+
+		// Create a new message with explicit field access
+		var message Message
+		message.Type = jsonMap["type"].(string)
+		
+		// Explicitly extract receiverID as int
+		if receiverIDFloat, ok := jsonMap["receiverID"].(float64); ok {
+			message.ReceiverID = int(receiverIDFloat)
+			log.Printf("Successfully extracted receiverID: %d", message.ReceiverID)
+		} else {
+			log.Printf("Warning: Could not extract receiverID from message")
+			continue
+		}
+		
+		// Extract content if present
+		if content, ok := jsonMap["content"].(string); ok {
+			message.Content = content
 		}
 
 		// Handle based on message type
@@ -184,78 +203,80 @@ func (c *Client) readPump() {
 
 // handleChatMessage processes a chat message from a client
 func handleChatMessage(c *Client, message Message) {
-	// Store the original receiverID before any processing
-	originalReceiverID := message.ReceiverID
+	// Explicitly set and log the key values to ensure they're correct
+	senderID := c.UserID
+	receiverID := message.ReceiverID
+	content := message.Content
+
+	// Log the explicit values
+	log.Printf("Processing message with explicit values: SenderID=%d, ReceiverID=%d, Content=%s", 
+		senderID, receiverID, content)
 	
-	// Store message in database with the current timestamp
+	// Store message in database with current timestamp
 	timestamp := time.Now().Format(time.RFC3339)
 	
-	// Set the sender ID and timestamp 
-	message.SenderID = c.UserID
-	message.Timestamp = timestamp
-	
-	// CRITICAL: Restore the original receiverID that was passed in
-	message.ReceiverID = originalReceiverID
-	
-	// Log the actual message details for debugging
-	log.Printf("Processing message: SenderID=%d, ReceiverID=%d, Content=%s", 
-		message.SenderID, message.ReceiverID, message.Content)
-	
-	// Store in database
+	// Use explicit parameters for DB query to ensure correct values
 	_, err := database.Db.Exec(
 		"INSERT INTO private_messages (sender_id, receiver_id, content, timestamp) VALUES (?, ?, ?, ?)",
-		message.SenderID, message.ReceiverID, message.Content, timestamp,
+		senderID, receiverID, content, timestamp,
 	)
 	if err != nil {
 		log.Printf("Error storing message in database: %v", err)
 		return
 	}
 	
-	// Marshal the message with updated fields
-	respData, err := json.Marshal(message)
+	// Create a completely new response message
+	responseMsg := Message{
+		Type:       "message",
+		SenderID:   senderID,
+		ReceiverID: receiverID,
+		Content:    content,
+		Timestamp:  timestamp,
+	}
+	
+	// Marshal fresh message object to avoid any reference issues
+	respData, err := json.Marshal(responseMsg)
 	if err != nil {
 		log.Printf("Error marshaling response message: %v", err)
 		return
 	}
 	
-	// Send to recipient if online
+	// Send to recipient
 	c.Hub.mutex.Lock()
-	targetID := message.ReceiverID 
-	log.Printf("Looking for recipient with ID: %d (direct reference)", targetID)
-	
-	// Check if the recipient exists and is online
-	recipient, recipientExists := c.Hub.Clients[targetID]
+	recipient, recipientExists := c.Hub.Clients[receiverID]
 	c.Hub.mutex.Unlock()
 	
+	log.Printf("Looking for recipient with ID: %d (explicit value)", receiverID)
+	
 	if recipientExists {
-		log.Printf("Recipient %d found, sending message", targetID)
+		log.Printf("Recipient %d found, sending message", receiverID)
 		select {
 		case recipient.Send <- respData:
-			log.Printf("Message successfully sent to recipient %d", targetID)
+			log.Printf("Message successfully sent to recipient %d", receiverID)
 		default:
-			log.Printf("Failed to send message to recipient %d: channel full", targetID)
+			log.Printf("Failed to send message to recipient %d: channel full", receiverID)
 		}
 	} else {
-		log.Printf("Recipient %d is not online", targetID)
+		log.Printf("Recipient %d is not online", receiverID)
 	}
 	
 	// Send confirmation back to sender
 	select {
 	case c.Send <- respData:
-		log.Printf("Message confirmation sent back to sender %d", c.UserID)
+		log.Printf("Message confirmation sent back to sender %d", senderID)
 	default:
-		log.Printf("Failed to send confirmation to sender %d: channel full", c.UserID)
+		log.Printf("Failed to send confirmation to sender %d: channel full", senderID)
 	}
 }
 
 // handleHistoryRequest handles a request for message history
 func handleHistoryRequest(c *Client, message Message) {
-	// Store the original receiverID before any processing
+	// Explicitly extract the user ID being requested
 	otherUserID := message.ReceiverID
 	
 	log.Printf("History requested between users %d and %d", c.UserID, otherUserID)
 	
-	// Query for messages between these two users
+	// Query for messages between these two users using explicit values
 	rows, err := database.Db.Query(`
 		SELECT sender_id, receiver_id, content, timestamp
 		FROM private_messages

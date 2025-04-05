@@ -66,7 +66,7 @@ function connectWebSocket() {
       }
 
       // Fetch users after successful connection
-      fetchAllUsers().catch(error => {
+      fetchAllUsers().catch((error) => {
         debug("Error fetching users:", error);
         mockFetchAllUsers();
       });
@@ -124,7 +124,10 @@ function connectWebSocket() {
           if (Array.isArray(data.messages)) {
             displayMessageHistory(data.messages);
           } else {
-            debug("Invalid message history format - messages is not an array:", data.messages);
+            debug(
+              "Invalid message history format - messages is not an array:",
+              data.messages
+            );
             displayMessageHistory([]); // Empty history
           }
         }
@@ -224,8 +227,11 @@ function updateUsersList() {
 
 // Open chat with a specific user - shows in main content area
 function openChat(userId, username) {
+  // Ensure userId is an integer
+  userId = parseInt(userId, 10);
   currentChatUser = { id: userId, name: username };
   debug("Opening chat with:", currentChatUser);
+  debug("userId type:", typeof currentChatUser.id);
 
   // Update main content area with chat interface
   const content = document.getElementById("content");
@@ -266,7 +272,7 @@ function openChat(userId, username) {
     socket.send(
       JSON.stringify({
         type: "get_history",
-        receiverID: userId,
+        receiverID: userId, // Ensure this is a number
       })
     );
   } else {
@@ -320,13 +326,15 @@ function displayLocalMessage(content) {
 // Display a received message
 function displayMessage(message) {
   debug("Displaying message:", message);
-  
+
   // Only display if it's part of the current chat
   // Check both sender and receiver to see if this message belongs to current conversation
   if (
-    currentChatUser && 
-    ((message.sender_id === currentChatUser.id && message.receiver_id === state.sessionID) || 
-     (message.sender_id === state.sessionID && message.receiver_id === currentChatUser.id))
+    currentChatUser &&
+    ((message.sender_id === currentChatUser.id &&
+      message.receiverID === state.sessionID) || // Change to receiverID
+      (message.sender_id === state.sessionID &&
+        message.receiverID === currentChatUser.id)) // Change to receiverID
   ) {
     const messagesContainer = document.getElementById("messages-container");
     if (!messagesContainer) {
@@ -342,12 +350,15 @@ function displayMessage(message) {
 
     // Find existing "sending..." message if this is a confirmation of our sent message
     if (message.sender_id === state.sessionID) {
-      const pendingMessages = messagesContainer.querySelectorAll(".message.outgoing");
+      const pendingMessages =
+        messagesContainer.querySelectorAll(".message.outgoing");
       for (const pending of pendingMessages) {
         const timeElem = pending.querySelector(".message-time");
         if (timeElem && timeElem.textContent.includes("Sending...")) {
           // Update this message instead of creating a new one
-          timeElem.textContent = new Date(message.timestamp).toLocaleTimeString();
+          timeElem.textContent = new Date(
+            message.timestamp
+          ).toLocaleTimeString();
           debug("Updated pending message with confirmation");
           return;
         }
@@ -357,7 +368,7 @@ function displayMessage(message) {
     // Create new message element
     const messageElem = document.createElement("div");
     messageElem.className = "message";
-    
+
     if (message.sender_id === state.sessionID) {
       messageElem.classList.add("outgoing");
     } else {
@@ -410,7 +421,7 @@ function displayMessageHistory(messages) {
   }
 
   debug("Displaying message history:", messages.length, "messages");
-  
+
   // Display newest messages last (reverse the already-desc-ordered result from server)
   messages.reverse().forEach((message) => {
     displayMessage(message);
@@ -444,21 +455,27 @@ function sendMessage() {
     return;
   }
 
+  // Make sure receiverID is explicitly an integer
+  const receiverID = parseInt(currentChatUser.id, 10);
+
   const message = {
     type: "message",
-    receiverID: currentChatUser.id,
+    receiverID: receiverID,
     content: content,
   };
 
   // Log to console for debugging
-  debug("Sending message:", message);
+  debug("Preparing to send message:", message);
+  debug("receiverID type:", typeof message.receiverID);
 
   // Add message locally immediately for better UX
   displayLocalMessage(content);
 
   // Send via websocket
   try {
-    socket.send(JSON.stringify(message));
+    const jsonString = JSON.stringify(message);
+    debug("Sending stringified message:", jsonString);
+    socket.send(jsonString);
     messageInput.value = "";
     messageInput.focus();
   } catch (e) {
@@ -534,8 +551,8 @@ function mockFetchAllUsers() {
 }
 
 // Override loadHomePage from app.js for backward compatibility
-if (typeof window.loadHomePage !== 'function') {
-  window.loadHomePage = function() {
+if (typeof window.loadHomePage !== "function") {
+  window.loadHomePage = function () {
     debug("Falling back to mock loadHomePage");
     location.href = "/";
   };
@@ -545,9 +562,9 @@ if (typeof window.loadHomePage !== 'function') {
 window.addEventListener("stateUpdated", checkAndConnectWebSocket);
 
 // When login or logout occurs
-if (typeof window.updateUI === 'function') {
+if (typeof window.updateUI === "function") {
   const originalUpdateUI = window.updateUI;
-  window.updateUI = function() {
+  window.updateUI = function () {
     originalUpdateUI();
     debug("UI updated, checking WebSocket connection");
     checkAndConnectWebSocket();
@@ -555,7 +572,7 @@ if (typeof window.updateUI === 'function') {
 }
 
 // Initialize on page load completion
-window.addEventListener('load', function() {
+window.addEventListener("load", function () {
   debug("Window loaded, checking WebSocket connection");
   checkAndConnectWebSocket();
 });
