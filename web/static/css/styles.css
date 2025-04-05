@@ -620,11 +620,6 @@ button[name="type"]:hover {
   }
 }
 
-/* Add this to your styles.css file to make room for the chat sidebar */
-
-.posts-feed {
-  margin-right: 210px; /* Make room for chat sidebar */
-}
 
 /* Update the main-container to adjust for the chat sidebar */
 .main-container {

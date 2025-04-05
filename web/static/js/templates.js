@@ -236,21 +236,28 @@ const templates = {
         </div>
       </div>
     `,
-  
-  activeUsers: (users) => {
-    if (!users || users.length === 0) {
-      return `<div id="active-users-section"><h2>Active Users</h2><p>No active users.</p></div>`;
-    }
-  
-      return `
-        <div id="active-users-section">
-          <h2>Active Users</h2>
-          <ul>
-            ${users.map(user => `<li>${user.username}</li>`).join('')}
-          </ul>
+
+  // New chat interface template
+  chatInterface: (username) => `
+    <div class="chat-interface">
+      <div class="chat-title">
+        <h2>Chat with ${username}</h2>
+        <button id="back-to-posts" class="back-button">Back to Posts</button>
+      </div>
+      
+      <div id="messages-container" class="messages-container">
+        <div class="chat-empty-state">
+          <h3>Start a conversation</h3>
+          <p>No messages yet. Send a message to start the conversation.</p>
         </div>
-      `;
-    },
+      </div>
+      
+      <div class="chat-footer">
+        <textarea id="message-input" placeholder="Type a message..." rows="2"></textarea>
+        <button id="send-message-button">Send</button>
+      </div>
+    </div>
+  `,
 
   // Helper templates
   loading: () => '<div class="loading">Loading...</div>',
@@ -312,6 +319,17 @@ const templates = {
 
     return sidebarHTML;
   },
+
+  // Chat sidebar template (separate from the left sidebar)
+  chatSidebar: () => `
+    <div class="chat-header">
+      <h3>Chat</h3>
+      <span id="chat-status">Disconnected</span>
+    </div>
+    <div id="users-list" class="users-list">
+      <p class="empty-users-message">Loading users...</p>
+    </div>
+  `,
 };
 
 // Make templates available globally

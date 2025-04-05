@@ -53,6 +53,15 @@ function updateUI() {
   document.getElementById("sidebar").innerHTML = templates.sidebar(
     state.sessionID
   );
+  const chatSidebar = document.getElementById("chat-sidebar");
+  if (chatSidebar) {
+    if (state.sessionID) {
+      chatSidebar.innerHTML = templates.chatSidebar();
+      // The chat.js file will handle populating the users
+    } else {
+      chatSidebar.innerHTML = ""; // Empty for non-logged-in users
+    }
+  }
 }
 
 // Handle logout
@@ -129,6 +138,10 @@ function loadCurrentPage() {
     }
   } else {
     showErrorPage("Page not found");
+  }
+  const chatSidebar = document.getElementById("chat-sidebar");
+  if (chatSidebar && state.sessionID) {
+    chatSidebar.innerHTML = templates.chatSidebar();
   }
 }
 

@@ -3,6 +3,24 @@
 let socket = null;
 let currentChatUser = null;
 const onlineUsers = [];
+let allUsers = [];
+
+// Fetch all registered users
+async function fetchAllUsers() {
+  try {
+    const response = await fetch("/user/all", {
+      headers: { Accept: "application/json" },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      allUsers = data.users || [];
+      updateUsersList();
+    }
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  }
+}
 
 // Connect to WebSocket when user is logged in
 function connectWebSocket() {
@@ -13,21 +31,30 @@ function connectWebSocket() {
 
   // Update status to connecting
   const statusElement = document.getElementById("chat-status");
-  statusElement.textContent = "Connecting...";
-  statusElement.className = "connecting";
+  if (statusElement) {
+    statusElement.textContent = "Connecting...";
+    statusElement.className = "connecting";
+  }
 
   socket = new WebSocket(wsUrl);
 
   socket.onopen = function () {
     console.log("WebSocket connected");
-    statusElement.textContent = "Connected";
-    statusElement.className = "connected";
+    if (statusElement) {
+      statusElement.textContent = "Connected";
+      statusElement.className = "connected";
+    }
+
+    // Once connected, fetch all users
+    fetchAllUsers();
   };
 
   socket.onclose = function () {
     console.log("WebSocket disconnected");
-    statusElement.textContent = "Disconnected";
-    statusElement.className = "disconnected";
+    if (statusElement) {
+      statusElement.textContent = "Disconnected";
+      statusElement.className = "disconnected";
+    }
     socket = null;
 
     // Try to reconnect after a delay
@@ -36,16 +63,23 @@ function connectWebSocket() {
 
   socket.onerror = function (error) {
     console.error("WebSocket error:", error);
-    statusElement.textContent = "Error";
-    statusElement.className = "disconnected";
+    if (statusElement) {
+      statusElement.textContent = "Error";
+      statusElement.className = "disconnected";
+    }
   };
 
   socket.onmessage = function (event) {
     const data = JSON.parse(event.data);
+    console.log("Received message:", data);
 
     if (data.type === "user_list") {
       // Update online users list
-      updateOnlineUsers(data.users);
+      onlineUsers.length = 0;
+      data.users.forEach((user) => {
+        onlineUsers.push(user.id);
+      });
+      updateUsersList();
     } else if (data.type === "message") {
       // Handle received message
       displayMessage(data);
@@ -66,7 +100,7 @@ function connectWebSocket() {
 
 // Show notification for new message
 function showMessageNotification(message) {
-  // Find the username from online users
+  // Find the username from users list
   let senderName = "User";
   const userItem = document.querySelector(
     `.user-item[data-user-id="${message.sender_id}"]`
@@ -94,26 +128,33 @@ function showMessageNotification(message) {
   }
 }
 
-// Update the list of online users
-function updateOnlineUsers(users) {
-  const usersList = document.getElementById("online-users-list");
+// Update the list of users (both online and offline)
+function updateUsersList() {
+  const usersList = document.getElementById("users-list");
+  if (!usersList) return;
+
   usersList.innerHTML = "";
 
-  if (users.length <= 1) {
-    // Only current user is online
+  if (allUsers.length === 0) {
     const emptyMessage = document.createElement("p");
     emptyMessage.className = "empty-users-message";
-    emptyMessage.textContent = "No users online";
+    emptyMessage.textContent = "No users found";
     usersList.appendChild(emptyMessage);
     return;
   }
 
-  users.forEach((user) => {
+  allUsers.forEach((user) => {
     // Don't show current user
     if (user.id === state.sessionID) return;
 
     const userItem = document.createElement("div");
     userItem.className = "user-item";
+    if (onlineUsers.includes(user.id)) {
+      userItem.classList.add("online");
+    } else {
+      userItem.classList.add("offline");
+    }
+
     userItem.textContent = user.username;
     userItem.dataset.userId = user.id;
     userItem.dataset.username = user.username;
@@ -126,18 +167,66 @@ function updateOnlineUsers(users) {
 
     usersList.appendChild(userItem);
   });
+
+  // For testing, if we don't have users yet, add some dummy users
+  if (allUsers.length === 0 && state.sessionID) {
+    const dummyUsers = [
+      { id: 999, username: "Alice" },
+      { id: 888, username: "Bob" },
+      { id: 777, username: "Charlie" },
+    ];
+
+    dummyUsers.forEach((user) => {
+      const userItem = document.createElement("div");
+      userItem.className = "user-item";
+      userItem.classList.add(Math.random() > 0.5 ? "online" : "offline");
+
+      userItem.textContent = user.username;
+      userItem.dataset.userId = user.id;
+      userItem.dataset.username = user.username;
+
+      userItem.addEventListener("click", function () {
+        openChat(user.id, user.username);
+        this.classList.remove("has-new-message");
+      });
+
+      usersList.appendChild(userItem);
+    });
+  }
 }
 
-// Open chat with a specific user
+// Open chat with a specific user - now shows in main content area
 function openChat(userId, username) {
   currentChatUser = { id: userId, name: username };
 
-  // Update UI
-  document.getElementById("chat-user-name").textContent = username;
-  document.getElementById("chat-window").style.display = "flex";
+  // Update main content area with chat interface
+  const content = document.getElementById("content");
+  if (!content) return;
 
-  // Clear previous messages
-  document.getElementById("messages-container").innerHTML = "";
+  content.innerHTML = templates.chatInterface(username);
+
+  // Set up back button
+  document
+    .getElementById("back-to-posts")
+    .addEventListener("click", function () {
+      loadHomePage();
+      currentChatUser = null;
+    });
+
+  // Set up message send button
+  document
+    .getElementById("send-message-button")
+    .addEventListener("click", sendMessage);
+
+  // Set up enter key to send message
+  document
+    .getElementById("message-input")
+    .addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
 
   // Request message history
   if (socket && socket.readyState === WebSocket.OPEN) {
@@ -151,7 +240,8 @@ function openChat(userId, username) {
 
   // Focus the message input
   setTimeout(() => {
-    document.getElementById("message-input").focus();
+    const messageInput = document.getElementById("message-input");
+    if (messageInput) messageInput.focus();
   }, 100);
 }
 
@@ -168,6 +258,8 @@ function sendMessage() {
   }
 
   const messageInput = document.getElementById("message-input");
+  if (!messageInput) return;
+
   const content = messageInput.value.trim();
 
   if (!content) return;
@@ -178,9 +270,40 @@ function sendMessage() {
     content: content,
   };
 
+  // Log to console for debugging
+  console.log("Sending message:", message);
+
+  // Add message locally immediately
+  displayLocalMessage(content);
+
+  // Send via websocket
   socket.send(JSON.stringify(message));
   messageInput.value = "";
   messageInput.focus();
+}
+
+// Display a locally sent message before confirmation
+function displayLocalMessage(content) {
+  const messagesContainer = document.getElementById("messages-container");
+  if (!messagesContainer) return;
+
+  // Clear empty state if it exists
+  const emptyState = messagesContainer.querySelector(".chat-empty-state");
+  if (emptyState) {
+    emptyState.remove();
+  }
+
+  const messageElem = document.createElement("div");
+  messageElem.className = "message outgoing";
+
+  const time = new Date().toLocaleTimeString();
+  messageElem.innerHTML = `
+    <div class="message-text">${escapeHTML(content)}</div>
+    <div class="message-time">${time} (Sending...)</div>
+  `;
+
+  messagesContainer.appendChild(messageElem);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 // Display a received message
@@ -192,6 +315,14 @@ function displayMessage(message) {
       message.receiver_id === currentChatUser.id)
   ) {
     const messagesContainer = document.getElementById("messages-container");
+    if (!messagesContainer) return;
+
+    // Clear empty state if it exists
+    const emptyState = messagesContainer.querySelector(".chat-empty-state");
+    if (emptyState) {
+      emptyState.remove();
+    }
+
     const messageElem = document.createElement("div");
 
     messageElem.className = "message";
@@ -225,7 +356,19 @@ function escapeHTML(text) {
 // Display message history
 function displayMessageHistory(messages) {
   const messagesContainer = document.getElementById("messages-container");
+  if (!messagesContainer) return;
+
   messagesContainer.innerHTML = "";
+
+  if (!messages || messages.length === 0) {
+    messagesContainer.innerHTML = `
+      <div class="chat-empty-state">
+        <h3>Start a conversation</h3>
+        <p>No messages yet. Send a message to start the conversation.</p>
+      </div>
+    `;
+    return;
+  }
 
   // Display newest messages last
   messages.reverse().forEach((message) => {
@@ -233,44 +376,8 @@ function displayMessageHistory(messages) {
   });
 }
 
-// Toggle mobile chat sidebar
-function toggleChatSidebar() {
-  const sidebar = document.querySelector(".chat-sidebar");
-  sidebar.classList.toggle("active");
-}
-
 // Initialize chat when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
-  // Add chat toggle button for mobile
-  if (window.innerWidth <= 768) {
-    const toggleButton = document.createElement("button");
-    toggleButton.className = "chat-toggle";
-    toggleButton.innerHTML = "💬";
-    toggleButton.addEventListener("click", toggleChatSidebar);
-    document.body.appendChild(toggleButton);
-  }
-
-  // Set up message send button
-  document
-    .getElementById("send-message-button")
-    .addEventListener("click", sendMessage);
-
-  // Send on Enter key
-  document
-    .getElementById("message-input")
-    .addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-  // Close chat button
-  document.getElementById("close-chat").addEventListener("click", function () {
-    document.getElementById("chat-window").style.display = "none";
-    currentChatUser = null;
-  });
-
   // Connect WebSocket if logged in
   if (state && state.sessionID > 0) {
     connectWebSocket();
@@ -298,9 +405,46 @@ function triggerStateUpdate() {
   window.dispatchEvent(event);
 }
 
-// Update the original updateUI function in app.js
+// Mock user data until backend API is available
+function mockFetchAllUsers() {
+  if (state && state.sessionID > 0) {
+    // Create some dummy users
+    allUsers = [
+      { id: 1001, username: "Alice" },
+      { id: 1002, username: "Bob" },
+      { id: 1003, username: "Charlie" },
+      { id: 1004, username: "David" },
+      { id: 1005, username: "Eve" },
+    ];
+
+    // Randomly set some as online
+    onlineUsers.length = 0;
+    allUsers.forEach((user) => {
+      if (Math.random() > 0.5) {
+        onlineUsers.push(user.id);
+      }
+    });
+
+    // Update the UI
+    updateUsersList();
+  }
+}
+
+// Add loadHomePage reference from app.js
+window.loadHomePage = loadHomePage;
+
+// Update the original updateUI function in app.js to connect WebSocket on login
 const originalUpdateUI = updateUI;
 window.updateUI = function () {
   originalUpdateUI();
   triggerStateUpdate();
+
+  // If logged in, attempt to fetch users (or use mock data)
+  if (state && state.sessionID > 0) {
+    // Try to fetch real users first
+    fetchAllUsers().catch(() => {
+      // Fall back to mock data if API doesn't exist yet
+      setTimeout(mockFetchAllUsers, 1000);
+    });
+  }
 };
