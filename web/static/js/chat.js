@@ -5,29 +5,48 @@ let currentChatUser = null;
 const onlineUsers = [];
 let allUsers = [];
 
+// For debugging
+const DEBUG = true;
+function debug(message, data) {
+  if (DEBUG) {
+    console.log(`[CHAT DEBUG] ${message}`, data || "");
+  }
+}
+
 // Fetch all registered users
 async function fetchAllUsers() {
   try {
+    debug("Attempting to fetch users from /user/all");
     const response = await fetch("/user/all", {
       headers: { Accept: "application/json" },
     });
 
     if (response.ok) {
       const data = await response.json();
+      debug("Received user data:", data);
       allUsers = data.users || [];
       updateUsersList();
+      return true;
+    } else {
+      debug("Failed to fetch users, status:", response.status);
+      return false;
     }
   } catch (error) {
-    console.error("Error fetching users:", error);
+    debug("Error fetching users:", error);
+    return false;
   }
 }
 
 // Connect to WebSocket when user is logged in
 function connectWebSocket() {
-  if (socket !== null) return;
+  if (socket !== null) {
+    debug("WebSocket already connected, skipping connection");
+    return;
+  }
 
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${protocol}//${window.location.host}/ws`;
+  debug("Attempting WebSocket connection to:", wsUrl);
 
   // Update status to connecting
   const statusElement = document.getElementById("chat-status");
@@ -36,66 +55,84 @@ function connectWebSocket() {
     statusElement.className = "connecting";
   }
 
-  socket = new WebSocket(wsUrl);
+  try {
+    socket = new WebSocket(wsUrl);
 
-  socket.onopen = function () {
-    console.log("WebSocket connected");
-    if (statusElement) {
-      statusElement.textContent = "Connected";
-      statusElement.className = "connected";
-    }
-
-    // Once connected, fetch all users
-    fetchAllUsers();
-  };
-
-  socket.onclose = function () {
-    console.log("WebSocket disconnected");
-    if (statusElement) {
-      statusElement.textContent = "Disconnected";
-      statusElement.className = "disconnected";
-    }
-    socket = null;
-
-    // Try to reconnect after a delay
-    setTimeout(connectWebSocket, 5000);
-  };
-
-  socket.onerror = function (error) {
-    console.error("WebSocket error:", error);
-    if (statusElement) {
-      statusElement.textContent = "Error";
-      statusElement.className = "disconnected";
-    }
-  };
-
-  socket.onmessage = function (event) {
-    const data = JSON.parse(event.data);
-    console.log("Received message:", data);
-
-    if (data.type === "user_list") {
-      // Update online users list
-      onlineUsers.length = 0;
-      data.users.forEach((user) => {
-        onlineUsers.push(user.id);
-      });
-      updateUsersList();
-    } else if (data.type === "message") {
-      // Handle received message
-      displayMessage(data);
-
-      // If this is a new message and not from current chat, show notification
-      if (
-        data.sender_id !== state.sessionID &&
-        (!currentChatUser || data.sender_id !== currentChatUser.id)
-      ) {
-        showMessageNotification(data);
+    socket.onopen = function () {
+      debug("WebSocket connected successfully");
+      if (statusElement) {
+        statusElement.textContent = "Connected";
+        statusElement.className = "connected";
       }
-    } else if (data.type === "history") {
-      // Display message history
-      displayMessageHistory(data.messages);
+
+      // Fetch users or show mock data
+      fetchAllUsers().then((success) => {
+        if (!success) {
+          debug("Using mock user data instead");
+          mockFetchAllUsers();
+        }
+      });
+    };
+
+    socket.onclose = function (event) {
+      debug("WebSocket closed with code:", event.code);
+      if (statusElement) {
+        statusElement.textContent = "Disconnected";
+        statusElement.className = "disconnected";
+      }
+      socket = null;
+
+      // Try to reconnect after a delay
+      setTimeout(connectWebSocket, 5000);
+    };
+
+    socket.onerror = function (error) {
+      debug("WebSocket error:", error);
+      if (statusElement) {
+        statusElement.textContent = "Error";
+        statusElement.className = "disconnected";
+      }
+    };
+
+    socket.onmessage = function (event) {
+      try {
+        const data = JSON.parse(event.data);
+        debug("Received WebSocket message:", data);
+
+        if (data.type === "user_list") {
+          // Update online users list
+          onlineUsers.length = 0;
+          data.users.forEach((user) => {
+            onlineUsers.push(user.id);
+          });
+          updateUsersList();
+        } else if (data.type === "message") {
+          // Handle received message
+          debug("Received chat message:", data);
+          displayMessage(data);
+
+          // If this is a new message and not from current chat, show notification
+          if (
+            data.sender_id !== state.sessionID &&
+            (!currentChatUser || data.sender_id !== currentChatUser.id)
+          ) {
+            showMessageNotification(data);
+          }
+        } else if (data.type === "history") {
+          debug("Received message history:", data);
+          displayMessageHistory(data.messages);
+        }
+      } catch (e) {
+        debug("Error processing WebSocket message:", e);
+      }
+    };
+  } catch (e) {
+    debug("Error creating WebSocket:", e);
+    if (statusElement) {
+      statusElement.textContent = "Failed";
+      statusElement.className = "disconnected";
     }
-  };
+  }
 }
 
 // Show notification for new message
@@ -108,6 +145,8 @@ function showMessageNotification(message) {
   if (userItem) {
     senderName = userItem.dataset.username;
   }
+
+  debug("Showing notification for message from:", senderName);
 
   // Create notification if browser supports it
   if ("Notification" in window) {
@@ -131,8 +170,12 @@ function showMessageNotification(message) {
 // Update the list of users (both online and offline)
 function updateUsersList() {
   const usersList = document.getElementById("users-list");
-  if (!usersList) return;
+  if (!usersList) {
+    debug("users-list element not found");
+    return;
+  }
 
+  debug("Updating users list with:", { allUsers, onlineUsers });
   usersList.innerHTML = "";
 
   if (allUsers.length === 0) {
@@ -160,6 +203,7 @@ function updateUsersList() {
     userItem.dataset.username = user.username;
 
     userItem.addEventListener("click", function () {
+      debug("User clicked:", user);
       openChat(user.id, user.username);
       // Remove highlight when clicked
       this.classList.remove("has-new-message");
@@ -168,40 +212,20 @@ function updateUsersList() {
     usersList.appendChild(userItem);
   });
 
-  // For testing, if we don't have users yet, add some dummy users
-  if (allUsers.length === 0 && state.sessionID) {
-    const dummyUsers = [
-      { id: 999, username: "Alice" },
-      { id: 888, username: "Bob" },
-      { id: 777, username: "Charlie" },
-    ];
-
-    dummyUsers.forEach((user) => {
-      const userItem = document.createElement("div");
-      userItem.className = "user-item";
-      userItem.classList.add(Math.random() > 0.5 ? "online" : "offline");
-
-      userItem.textContent = user.username;
-      userItem.dataset.userId = user.id;
-      userItem.dataset.username = user.username;
-
-      userItem.addEventListener("click", function () {
-        openChat(user.id, user.username);
-        this.classList.remove("has-new-message");
-      });
-
-      usersList.appendChild(userItem);
-    });
-  }
+  debug("Users list updated with", allUsers.length, "users");
 }
 
-// Open chat with a specific user - now shows in main content area
+// Open chat with a specific user - shows in main content area
 function openChat(userId, username) {
   currentChatUser = { id: userId, name: username };
+  debug("Opening chat with:", currentChatUser);
 
   // Update main content area with chat interface
   const content = document.getElementById("content");
-  if (!content) return;
+  if (!content) {
+    debug("Content element not found");
+    return;
+  }
 
   content.innerHTML = templates.chatInterface(username);
 
@@ -209,6 +233,7 @@ function openChat(userId, username) {
   document
     .getElementById("back-to-posts")
     .addEventListener("click", function () {
+      debug("Back to posts clicked");
       loadHomePage();
       currentChatUser = null;
     });
@@ -230,12 +255,24 @@ function openChat(userId, username) {
 
   // Request message history
   if (socket && socket.readyState === WebSocket.OPEN) {
+    debug("Requesting message history with:", userId);
     socket.send(
       JSON.stringify({
         type: "get_history",
         receiverID: userId,
       })
     );
+  } else {
+    debug("Socket not ready, cannot request history");
+    const messagesContainer = document.getElementById("messages-container");
+    if (messagesContainer) {
+      messagesContainer.innerHTML = `
+        <div class="chat-empty-state">
+          <h3>Chat connection error</h3>
+          <p>Not connected to chat server. Please refresh the page and try again.</p>
+        </div>
+      `;
+    }
   }
 
   // Focus the message input
@@ -249,20 +286,28 @@ function openChat(userId, username) {
 function sendMessage() {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     alert("WebSocket not connected");
+    debug("Cannot send message, WebSocket not connected");
     return;
   }
 
   if (!currentChatUser) {
     alert("Please select a user to chat with");
+    debug("Cannot send message, no chat user selected");
     return;
   }
 
   const messageInput = document.getElementById("message-input");
-  if (!messageInput) return;
+  if (!messageInput) {
+    debug("Message input element not found");
+    return;
+  }
 
   const content = messageInput.value.trim();
 
-  if (!content) return;
+  if (!content) {
+    debug("Empty message, not sending");
+    return;
+  }
 
   const message = {
     type: "message",
@@ -271,21 +316,29 @@ function sendMessage() {
   };
 
   // Log to console for debugging
-  console.log("Sending message:", message);
+  debug("Sending message:", message);
 
   // Add message locally immediately
   displayLocalMessage(content);
 
   // Send via websocket
-  socket.send(JSON.stringify(message));
-  messageInput.value = "";
-  messageInput.focus();
+  try {
+    socket.send(JSON.stringify(message));
+    messageInput.value = "";
+    messageInput.focus();
+  } catch (e) {
+    debug("Error sending message:", e);
+    alert("Failed to send message: " + e.message);
+  }
 }
 
 // Display a locally sent message before confirmation
 function displayLocalMessage(content) {
   const messagesContainer = document.getElementById("messages-container");
-  if (!messagesContainer) return;
+  if (!messagesContainer) {
+    debug("Messages container not found");
+    return;
+  }
 
   // Clear empty state if it exists
   const emptyState = messagesContainer.querySelector(".chat-empty-state");
@@ -304,10 +357,12 @@ function displayLocalMessage(content) {
 
   messagesContainer.appendChild(messageElem);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  debug("Local message displayed");
 }
 
 // Display a received message
 function displayMessage(message) {
+  debug("Displaying message:", message);
   // Only display if it's part of the current chat
   if (
     currentChatUser &&
@@ -315,7 +370,10 @@ function displayMessage(message) {
       message.receiver_id === currentChatUser.id)
   ) {
     const messagesContainer = document.getElementById("messages-container");
-    if (!messagesContainer) return;
+    if (!messagesContainer) {
+      debug("Messages container not found");
+      return;
+    }
 
     // Clear empty state if it exists
     const emptyState = messagesContainer.querySelector(".chat-empty-state");
@@ -340,6 +398,9 @@ function displayMessage(message) {
 
     messagesContainer.appendChild(messageElem);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    debug("Message displayed in chat");
+  } else {
+    debug("Message not displayed (not for current chat)");
   }
 }
 
@@ -356,11 +417,15 @@ function escapeHTML(text) {
 // Display message history
 function displayMessageHistory(messages) {
   const messagesContainer = document.getElementById("messages-container");
-  if (!messagesContainer) return;
+  if (!messagesContainer) {
+    debug("Messages container not found for history");
+    return;
+  }
 
   messagesContainer.innerHTML = "";
 
   if (!messages || messages.length === 0) {
+    debug("No message history to display");
     messagesContainer.innerHTML = `
       <div class="chat-empty-state">
         <h3>Start a conversation</h3>
@@ -370,6 +435,7 @@ function displayMessageHistory(messages) {
     return;
   }
 
+  debug("Displaying message history:", messages.length, "messages");
   // Display newest messages last
   messages.reverse().forEach((message) => {
     displayMessage(message);
@@ -378,9 +444,13 @@ function displayMessageHistory(messages) {
 
 // Initialize chat when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
+  debug("DOM loaded, checking session");
   // Connect WebSocket if logged in
   if (state && state.sessionID > 0) {
+    debug("Session active, connecting WebSocket");
     connectWebSocket();
+  } else {
+    debug("Not logged in, skipping WebSocket connection");
   }
 
   // Request notification permission
@@ -394,19 +464,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Connect when user logs in (event from app.js)
 window.addEventListener("stateUpdated", function () {
+  debug("State updated event received", { sessionID: state.sessionID });
   if (state && state.sessionID > 0 && !socket) {
+    debug("User logged in, connecting WebSocket");
     connectWebSocket();
   }
 });
 
 // Add an event to app.js to trigger state updates
 function triggerStateUpdate() {
+  debug("Triggering state update event");
   const event = new Event("stateUpdated");
   window.dispatchEvent(event);
 }
 
 // Mock user data until backend API is available
 function mockFetchAllUsers() {
+  debug("Using mock user data");
   if (state && state.sessionID > 0) {
     // Create some dummy users
     allUsers = [
@@ -427,6 +501,7 @@ function mockFetchAllUsers() {
 
     // Update the UI
     updateUsersList();
+    debug("Mock users data applied");
   }
 }
 
@@ -437,12 +512,15 @@ window.loadHomePage = loadHomePage;
 const originalUpdateUI = updateUI;
 window.updateUI = function () {
   originalUpdateUI();
+  debug("UI updated, triggering state update");
   triggerStateUpdate();
 
   // If logged in, attempt to fetch users (or use mock data)
   if (state && state.sessionID > 0) {
+    debug("User logged in, fetching users");
     // Try to fetch real users first
     fetchAllUsers().catch(() => {
+      debug("Failed to fetch users, using mock data");
       // Fall back to mock data if API doesn't exist yet
       setTimeout(mockFetchAllUsers, 1000);
     });

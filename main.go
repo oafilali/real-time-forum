@@ -37,6 +37,7 @@ func startServer() {
 	http.HandleFunc("/filter", handler.FilterHandler)
 	http.HandleFunc("/post", handler.ViewPostHandler)
 	http.HandleFunc("/user/status", handler.UserStatusHandler) // New endpoint for checking user status
+	http.HandleFunc("/user/all", handler.GetAllUsersHandler)
 	
 	// WebSocket endpoint
 	http.HandleFunc("/ws", handler.WebSocketHandler)
