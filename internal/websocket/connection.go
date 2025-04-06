@@ -87,6 +87,8 @@ func (c *Client) readPump() {
 			handleChatMessage(c, message)
 		case "get_history":
 			handleHistoryRequest(c, message)
+		case "get_more_history":
+			handleMoreHistoryRequest(c, message)
 		}
 	}
 }
@@ -171,6 +173,46 @@ func handleHistoryRequest(c *Client, message Message) {
 		log.Printf("Message history sent to user %d", c.UserID)
 	default:
 		log.Printf("Failed to send history to user %d: channel full", c.UserID)
+	}
+}
+
+// handleMoreHistoryRequest handles request for loading more message history
+func handleMoreHistoryRequest(c *Client, message Message) {
+	otherUserID := message.ReceiverID
+	before := message.Timestamp // Use the Timestamp field to pass the "before" parameter
+	
+	log.Printf("More history requested between users %d and %d before %s", c.UserID, otherUserID, before)
+	
+	// Get message history between these users before the specified timestamp
+	messages, err := GetMoreMessageHistory(c.UserID, otherUserID, before, 10)
+	if err != nil {
+		log.Printf("Error retrieving more message history: %v", err)
+		return
+	}
+	
+	// Add usernames to messages
+	for i := range messages {
+		if messages[i].SenderID == c.UserID {
+			messages[i].Username = c.Username
+		} else {
+			var username string
+			err := database.Db.QueryRow("SELECT username FROM users WHERE id = ?", messages[i].SenderID).Scan(&username)
+			if err != nil {
+				messages[i].Username = "Unknown"
+			} else {
+				messages[i].Username = username
+			}
+		}
+	}
+	
+	// Send history back to client
+	response := CreateMoreHistoryResponseMessage(messages)
+	
+	select {
+	case c.Send <- response:
+		log.Printf("More message history sent to user %d", c.UserID)
+	default:
+		log.Printf("Failed to send more history to user %d: channel full", c.UserID)
 	}
 }
 

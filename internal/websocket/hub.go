@@ -1,6 +1,8 @@
 package websocket
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 )
@@ -68,8 +70,59 @@ func (h *Hub) broadcastUserList() {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	
-	data := CreateUserListMessage(h.Clients)
-	if data == nil {
+	// For each online client, try to get their last message data
+	clientsWithData := make(map[int]struct{
+		*Client
+		LastMessageTime string
+	})
+	
+	// Get the basic client info first
+	for userID, client := range h.Clients {
+		clientsWithData[userID] = struct{
+			*Client
+			LastMessageTime string
+		}{
+			Client: client,
+			LastMessageTime: "", // Will be populated if available
+		}
+	}
+	
+	// Prepare the users list with last message timestamps where available
+	var users []map[string]interface{}
+	
+	for userID, clientData := range clientsWithData {
+		// For each user, get their last messages with other users
+		lastMessages, err := GetLastNMessagesForUsers(userID, 20) // Get last 20 conversations
+		
+		userData := map[string]interface{}{
+			"id":       userID,
+			"username": clientData.Client.Username,
+		}
+		
+		// If we have message history, add it
+		if err == nil && len(lastMessages) > 0 {
+			// Convert to a format that can be serialized
+			messagesData := make(map[string]interface{})
+			for otherUserID, message := range lastMessages {
+				messagesData[fmt.Sprintf("%d", otherUserID)] = map[string]interface{}{
+					"timestamp": message.Timestamp,
+					"content": message.Content,
+				}
+			}
+			userData["lastMessages"] = messagesData
+		}
+		
+		users = append(users, userData)
+	}
+
+	message := map[string]interface{}{
+		"type":  "user_list",
+		"users": users,
+	}
+
+	data, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("Error marshaling user list: %v", err)
 		return
 	}
 

@@ -71,7 +71,7 @@ const templates = {
   // Comments section
   comments: (comments) => {
     if (!comments || comments.length === 0) {
-      return "<p>No comments yet. Be the first to comment!</p>";
+      return "<p>No comments yet. Be the first to comment!</p>"
     }
 
     return comments
@@ -97,7 +97,7 @@ const templates = {
         </div>
       `
       )
-      .join("");
+      .join("")
   },
 
   // Comment form
@@ -111,7 +111,7 @@ const templates = {
             <textarea name="content" class="comment-box" placeholder="Write your comment here..." required></textarea>
             <button type="submit">Submit Comment</button>
           </form>
-        `;
+        `
     } else {
       return `
           <div class="login-prompt">
@@ -120,7 +120,7 @@ const templates = {
                <a href="/register" data-navigate>Register</a>
             </p>
           </div>
-        `;
+        `
     }
   },
 
@@ -237,7 +237,7 @@ const templates = {
       </div>
     `,
 
-  // New chat interface template
+  // Chat interface template
   chatInterface: (username) => `
     <div class="chat-interface">
       <div class="chat-title">
@@ -279,12 +279,12 @@ const templates = {
           <p>Logged in as: <strong>${username}</strong></p>
           <a href="/createPost" data-navigate>Create Post</a>
           <a href="#" id="logout-link">Logout</a>
-        `;
+        `
     } else {
       return `
           <a href="/login" data-navigate>Login</a>
           <a href="/register" data-navigate>Register</a>
-        `;
+        `
     }
   },
 
@@ -299,7 +299,7 @@ const templates = {
         <p><a href="/filter?category=Sailing" data-navigate>Sailing</a></p>
         <p><a href="/filter?category=Cuisine%20%26%20food" data-navigate>Cuisine & food</a></p>
         <p><a href="/filter?category=Politics" data-navigate>Politics</a></p>
-      `;
+      `
 
     // Add user-specific filters if logged in
     if (sessionID) {
@@ -307,7 +307,7 @@ const templates = {
           <h2>Filters:</h2>
           <p><a href="/filter?user_created=true" data-navigate>My Posts</a></p>
           <p><a href="/filter?liked=true" data-navigate>Liked Posts</a></p>
-        `;
+        `
     }
 
     // Add home button
@@ -315,12 +315,12 @@ const templates = {
         <div class="category-button">
           <a href="/" data-navigate class="back-to-home">Back to Home</a>
         </div>
-      `;
+      `
 
-    return sidebarHTML;
+    return sidebarHTML
   },
 
-  // Chat sidebar template (separate from the left sidebar)
+  // Chat sidebar template
   chatSidebar: () => `
     <div class="chat-header">
       <h3>Chat</h3>
@@ -330,7 +330,7 @@ const templates = {
       <p class="empty-users-message">Loading users...</p>
     </div>
   `,
-};
+}
 
 // Make templates available globally
-window.templates = templates;
+window.templates = templates

@@ -96,14 +96,8 @@ function connectWebSocket() {
         debug("Parsed WebSocket message:", data)
 
         if (data.type === "user_list") {
-          // Update online users list
-          onlineUsers.length = 0
-          if (Array.isArray(data.users)) {
-            data.users.forEach((user) => {
-              onlineUsers.push(user.id)
-            })
-          }
-          updateUsersList()
+          // Call our broadcastUserList function to handle user list updates
+          broadcastUserList(data.users)
         } else if (data.type === "message") {
           // Handle received message
           debug("Received chat message:", data)
@@ -124,6 +118,13 @@ function connectWebSocket() {
             debug("Invalid message history format:", data.messages)
             displayMessageHistory([]) // Empty history
           }
+        } else if (data.type === "more_history") {
+          debug("Received more message history:", data)
+          if (Array.isArray(data.messages)) {
+            displayMoreMessageHistory(data.messages)
+          } else {
+            debug("Invalid more message history format:", data.messages)
+          }
         }
       } catch (e) {
         debug("Error processing WebSocket message:", e)
@@ -137,6 +138,21 @@ function connectWebSocket() {
       statusElement.className = "disconnected"
     }
   }
+}
+
+// Update the broadcast user list function to automatically update the UI
+function broadcastUserList(users) {
+  debug("Received updated user list:", users)
+  onlineUsers.length = 0
+
+  if (Array.isArray(users)) {
+    users.forEach((user) => {
+      onlineUsers.push(user.id)
+    })
+  }
+
+  // Update the UI immediately
+  updateUsersList()
 }
 
 // Show notification for new message
@@ -190,13 +206,19 @@ function updateUsersList() {
     return
   }
 
-  // Sort users: online first, then alphabetically
+  // Sort users:
+  // 1. Online users first
+  // 2. Users with recent messages next (if we had message timestamps)
+  // 3. Then alphabetically
   const sortedUsers = [...allUsers].sort((a, b) => {
     const aOnline = onlineUsers.includes(a.id)
     const bOnline = onlineUsers.includes(b.id)
 
+    // Online users first
     if (aOnline && !bOnline) return -1
     if (!aOnline && bOnline) return 1
+
+    // Then alphabetically
     return a.username.localeCompare(b.username)
   })
 
@@ -292,6 +314,11 @@ function openChat(userId, username) {
     }
   }
 
+  // Set up scroll listener for loading more messages
+  setTimeout(() => {
+    setupScrollListener()
+  }, 500)
+
   // Focus the message input
   setTimeout(() => {
     const messageInput = document.getElementById("message-input")
@@ -362,6 +389,8 @@ function displayMessage(message) {
           timeElem.textContent = new Date(
             message.timestamp
           ).toLocaleTimeString()
+          // Add timestamp as data attribute
+          timeElem.setAttribute("data-timestamp", message.timestamp)
           debug("Updated pending message with confirmation")
           return
         }
@@ -381,7 +410,9 @@ function displayMessage(message) {
     const time = new Date(message.timestamp).toLocaleTimeString()
     messageElem.innerHTML = `
       <div class="message-text">${escapeHTML(message.content)}</div>
-      <div class="message-time">${time}</div>
+      <div class="message-time" data-timestamp="${
+        message.timestamp
+      }">${time}</div>
     `
 
     messagesContainer.appendChild(messageElem)
@@ -390,6 +421,66 @@ function displayMessage(message) {
   } else {
     debug("Message not displayed (not for current chat)")
   }
+}
+
+// Display more message history (prepend to existing messages)
+function displayMoreMessageHistory(messages) {
+  const messagesContainer = document.getElementById("messages-container")
+  if (!messagesContainer) {
+    debug("Messages container not found for more history")
+    return
+  }
+
+  // Remove any loading indicator
+  const loadingIndicator = messagesContainer.querySelector(".message-loading")
+  if (loadingIndicator) {
+    loadingIndicator.remove()
+  }
+
+  if (!messages || messages.length === 0) {
+    debug("No more message history to display")
+    return
+  }
+
+  debug("Displaying more message history:", messages.length, "messages")
+
+  // Remember the old scroll height and position
+  const oldScrollHeight = messagesContainer.scrollHeight
+  const oldScrollTop = messagesContainer.scrollTop
+
+  // Create a document fragment to batch DOM updates
+  const fragment = document.createDocumentFragment()
+
+  // Display messages in reverse order (oldest first)
+  messages.forEach((message) => {
+    // Create message element
+    const messageElem = document.createElement("div")
+    messageElem.className = "message"
+
+    if (message.sender_id === state.sessionID) {
+      messageElem.classList.add("outgoing")
+    } else {
+      messageElem.classList.add("incoming")
+    }
+
+    const time = new Date(message.timestamp).toLocaleTimeString()
+    messageElem.innerHTML = `
+      <div class="message-text">${escapeHTML(message.content)}</div>
+      <div class="message-time" data-timestamp="${
+        message.timestamp
+      }">${time}</div>
+    `
+
+    fragment.appendChild(messageElem)
+  })
+
+  // Prepend all messages at once
+  messagesContainer.insertBefore(fragment, messagesContainer.firstChild)
+
+  // Adjust scroll position to maintain the user's view position
+  const newScrollHeight = messagesContainer.scrollHeight
+  messagesContainer.scrollTop =
+    oldScrollTop + (newScrollHeight - oldScrollHeight)
 }
 
 // Helper function to escape HTML special characters
@@ -432,6 +523,94 @@ function displayMessageHistory(messages) {
 
   // Scroll to bottom
   messagesContainer.scrollTop = messagesContainer.scrollHeight
+}
+
+// Implement the scroll loading with debounce
+// Add a debounce function to limit how often a function can be called
+function debounce(func, wait) {
+  let timeout
+  return function () {
+    const context = this
+    const args = arguments
+    clearTimeout(timeout)
+    timeout = setTimeout(() => {
+      func.apply(context, args)
+    }, wait)
+  }
+}
+
+// Improve scrolling function with debounce
+function setupScrollListener() {
+  const messagesContainer = document.getElementById("messages-container")
+  if (!messagesContainer) return
+
+  let isLoading = false
+  let oldestMessageTimestamp = null
+
+  // Find the oldest message timestamp if there are messages
+  const findOldestMessageTimestamp = () => {
+    const messages = messagesContainer.querySelectorAll(".message")
+    if (messages.length > 0) {
+      const firstMessage = messages[0]
+      const timeElem = firstMessage.querySelector(".message-time")
+      if (timeElem) {
+        return timeElem.getAttribute("data-timestamp")
+      }
+    }
+    return null
+  }
+
+  // Load more messages function
+  const loadMoreMessages = () => {
+    if (isLoading || !currentChatUser) return
+
+    // Determine if we're at the top of the container
+    if (messagesContainer.scrollTop < 50) {
+      isLoading = true
+
+      // Show loading indicator
+      const loadingIndicator = document.createElement("div")
+      loadingIndicator.className = "message-loading"
+      loadingIndicator.textContent = "Loading more messages..."
+      messagesContainer.prepend(loadingIndicator)
+
+      // Get the oldest message timestamp
+      oldestMessageTimestamp = findOldestMessageTimestamp()
+
+      // Remember scroll position
+      const oldScrollHeight = messagesContainer.scrollHeight
+
+      // Request more messages using the timestamp
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            type: "get_more_history",
+            receiverID: currentChatUser.id,
+            timestamp: oldestMessageTimestamp,
+          })
+        )
+
+        // Simulated response timing (in a real implementation, this would be handled in the message event)
+        setTimeout(() => {
+          // If no response was received, remove the loading indicator
+          if (messagesContainer.querySelector(".message-loading")) {
+            loadingIndicator.remove()
+            isLoading = false
+          }
+        }, 3000)
+      } else {
+        // If not connected, remove indicator and allow trying again
+        loadingIndicator.remove()
+        isLoading = false
+      }
+    }
+  }
+
+  // Apply debounce to prevent rapid firing of the scroll event
+  const debouncedLoadMore = debounce(loadMoreMessages, 300)
+
+  // Add scroll event listener
+  messagesContainer.addEventListener("scroll", debouncedLoadMore)
 }
 
 // Send a message
@@ -524,29 +703,3 @@ function checkAndConnectWebSocket() {
 
 // Set up a regular check for WebSocket connection
 setInterval(checkAndConnectWebSocket, 2000)
-
-// Load more messages when scrolling up
-function setupScrollListener() {
-  const messagesContainer = document.getElementById("messages-container")
-  if (!messagesContainer) return
-
-  let isLoading = false
-  let oldestMessageTime = null
-
-  messagesContainer.addEventListener("scroll", function () {
-    if (isLoading) return
-
-    // If scrolled near top, load more messages
-    if (messagesContainer.scrollTop < 50) {
-      isLoading = true
-
-      // TODO: Implement loading more message history
-      // This would involve sending a request with the timestamp of the oldest
-      // message we have, to get messages before that time
-
-      setTimeout(() => {
-        isLoading = false
-      }, 1000)
-    }
-  })
-}
