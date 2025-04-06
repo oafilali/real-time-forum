@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to the clients
@@ -67,75 +68,78 @@ func (h *Hub) Run() {
 
 // broadcastUserList sends the list of online users to all clients
 func (h *Hub) broadcastUserList() {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-	
-	// For each online client, try to get their last message data
-	clientsWithData := make(map[int]struct{
-		*Client
-		LastMessageTime string
-	})
-	
-	// Get the basic client info first
-	for userID, client := range h.Clients {
-		clientsWithData[userID] = struct{
-			*Client
-			LastMessageTime string
-		}{
-			Client: client,
-			LastMessageTime: "", // Will be populated if available
-		}
-	}
-	
-	// Prepare the users list with last message timestamps where available
-	var users []map[string]interface{}
-	
-	for userID, clientData := range clientsWithData {
-		// For each user, get their last messages with other users
-		lastMessages, err := GetLastNMessagesForUsers(userID, 20) // Get last 20 conversations
-		
-		userData := map[string]interface{}{
-			"id":       userID,
-			"username": clientData.Client.Username,
-		}
-		
-		// If we have message history, add it
-		if err == nil && len(lastMessages) > 0 {
-			// Convert to a format that can be serialized
-			messagesData := make(map[string]interface{})
-			for otherUserID, message := range lastMessages {
-				messagesData[fmt.Sprintf("%d", otherUserID)] = map[string]interface{}{
-					"timestamp": message.Timestamp,
-					"content": message.Content,
-				}
-			}
-			userData["lastMessages"] = messagesData
-		}
-		
-		users = append(users, userData)
-	}
+    h.mutex.Lock()
+    defer h.mutex.Unlock()
+    
+    // Get all online users with their last message data
+    usersWithData := make(map[int]struct{
+        UserID    int
+        Username  string
+        LastMessage *time.Time
+    })
+    
+    // First populate with basic user info
+    for userID, client := range h.Clients {
+        usersWithData[userID] = struct{
+            UserID    int
+            Username  string
+            LastMessage *time.Time
+        }{
+            UserID:   userID,
+            Username: client.Username,
+            LastMessage: nil,
+        }
+    }
+    
+    // Prepare all users data for sending
+    var users []map[string]interface{}
+    
+    for userID, userData := range usersWithData {
+        // For each user, get their last conversations
+        lastMessages, err := GetLastNMessagesForUsers(userID, 20)
+        
+        userInfo := map[string]interface{}{
+            "id":       userData.UserID,
+            "username": userData.Username,
+        }
+        
+        // If we have message history, add it
+        if err == nil && len(lastMessages) > 0 {
+            messagesData := make(map[string]interface{})
+            for otherUserID, msg := range lastMessages {
+                messagesData[fmt.Sprintf("%d", otherUserID)] = map[string]interface{}{
+                    "timestamp": msg.Timestamp,
+                    "content":   msg.Content,
+                    "sender_id": msg.SenderID,
+                }
+            }
+            userInfo["lastMessages"] = messagesData
+        }
+        
+        users = append(users, userInfo)
+    }
 
-	message := map[string]interface{}{
-		"type":  "user_list",
-		"users": users,
-	}
+    message := map[string]interface{}{
+        "type":  "user_list",
+        "users": users,
+    }
 
-	data, err := json.Marshal(message)
-	if err != nil {
-		log.Printf("Error marshaling user list: %v", err)
-		return
-	}
+    data, err := json.Marshal(message)
+    if err != nil {
+        log.Printf("Error marshaling user list: %v", err)
+        return
+    }
 
-	log.Printf("Broadcasting user list with %d users", len(h.Clients))
-	for _, client := range h.Clients {
-		select {
-		case client.Send <- data:
-			// Message sent successfully
-		default:
-			// Skip clients with full message queues
-			log.Printf("Skipping client %d due to full message queue", client.UserID)
-		}
-	}
+    log.Printf("Broadcasting user list with %d users", len(h.Clients))
+    for _, client := range h.Clients {
+        select {
+        case client.Send <- data:
+            // Message sent successfully
+        default:
+            // Skip clients with full message queues
+            log.Printf("Skipping client %d due to full message queue", client.UserID)
+        }
+    }
 }
 
 // SendToUser sends a message to a specific user

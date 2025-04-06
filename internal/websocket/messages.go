@@ -10,11 +10,13 @@ import (
 // Message represents a chat message
 type Message struct {
 	Type       string `json:"type"`
+	ID         int    `json:"id,omitempty"`       // Added ID field
 	SenderID   int    `json:"sender_id,omitempty"`
 	ReceiverID int    `json:"receiverID"` 
 	Content    string `json:"content,omitempty"`
 	Timestamp  string `json:"timestamp,omitempty"`
 	Username   string `json:"username,omitempty"`
+	OtherUserID int   `json:"other_user_id,omitempty"` // Added to help with sorting
 }
 
 // StoreMessage saves a message to the database
@@ -218,28 +220,34 @@ func GetLastNMessagesForUsers(userID int, n int) (map[int]Message, error) {
 	
 	// Query for the most recent message with each user
 	rows, err := database.Db.Query(`
-		SELECT p1.*, u.username
-		FROM (
+		SELECT 
+			pm.id,
+			pm.sender_id, 
+			pm.receiver_id, 
+			pm.content, 
+			pm.timestamp,
+			CASE
+				WHEN pm.sender_id = ? THEN pm.receiver_id
+				WHEN pm.receiver_id = ? THEN pm.sender_id
+			END as other_user_id,
+			u.username
+		FROM private_messages pm
+		JOIN (
 			SELECT 
-				pm.*, 
 				CASE
-					WHEN pm.sender_id = ? THEN pm.receiver_id
-					WHEN pm.receiver_id = ? THEN pm.sender_id
-				END as other_user_id,
-				ROW_NUMBER() OVER (
-					PARTITION BY 
-						CASE
-							WHEN pm.sender_id = ? THEN pm.receiver_id
-							WHEN pm.receiver_id = ? THEN pm.sender_id
-						END
-					ORDER BY pm.timestamp DESC
-				) as row_num
-			FROM private_messages pm
-			WHERE pm.sender_id = ? OR pm.receiver_id = ?
-		) p1
-		JOIN users u ON u.id = p1.sender_id
-		WHERE p1.row_num = 1
-		ORDER BY p1.timestamp DESC
+					WHEN sender_id = ? THEN receiver_id
+					WHEN receiver_id = ? THEN sender_id
+				END as user_id,
+				MAX(timestamp) as latest_timestamp
+			FROM private_messages
+			WHERE sender_id = ? OR receiver_id = ?
+			GROUP BY user_id
+		) latest ON (
+			(latest.user_id = pm.sender_id OR latest.user_id = pm.receiver_id) AND
+			latest.latest_timestamp = pm.timestamp
+		)
+		JOIN users u ON u.id = pm.sender_id
+		ORDER BY pm.timestamp DESC
 		LIMIT ?
 	`, userID, userID, userID, userID, userID, userID, n)
 	
@@ -252,16 +260,15 @@ func GetLastNMessagesForUsers(userID int, n int) (map[int]Message, error) {
 	for rows.Next() {
 		var msg Message
 		var otherUserID int
-		var rowNum int
 		var timestamp string
 		
 		err := rows.Scan(
+			&msg.ID,
 			&msg.SenderID, 
 			&msg.ReceiverID, 
 			&msg.Content, 
 			&timestamp,
 			&otherUserID,
-			&rowNum,
 			&msg.Username,
 		)
 		
@@ -272,6 +279,7 @@ func GetLastNMessagesForUsers(userID int, n int) (map[int]Message, error) {
 		
 		msg.Type = "message"
 		msg.Timestamp = timestamp
+		msg.OtherUserID = otherUserID
 		results[otherUserID] = msg
 	}
 	
