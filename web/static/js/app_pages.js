@@ -53,7 +53,14 @@ async function loadPostPage(postId) {
     // Setup comment form submission
     const commentForm = document.getElementById("comment-form");
     if (commentForm) {
-      commentForm.addEventListener("submit", window.appForms.submitComment);
+      commentForm.addEventListener("submit", function (event) {
+        if (window.appForms && window.appForms.submitComment) {
+          window.appForms.submitComment(event);
+        } else {
+          console.error("appForms.submitComment not loaded");
+          event.preventDefault();
+        }
+      });
     }
   } catch (error) {
     console.error("Error:", error);
@@ -100,48 +107,58 @@ async function loadFilteredPosts(queryString) {
 // Show login page
 function showLoginPage() {
   document.getElementById("content").innerHTML = window.templates.loginForm();
-  document
-    .getElementById("login-form")
-    .addEventListener("submit", function (event) {
+
+  // Make sure we properly attach the event handler using the appForms module
+  const loginForm = document.getElementById("login-form");
+  if (loginForm) {
+    loginForm.addEventListener("submit", function (event) {
       if (window.appForms && window.appForms.submitLogin) {
         window.appForms.submitLogin(event);
       } else {
-        console.error("appForms module not loaded correctly");
+        console.error("appForms.submitLogin not loaded");
         event.preventDefault();
+        alert(
+          "Login functionality is not available. Please try refreshing the page."
+        );
       }
     });
+  }
 }
 
 // Show register page
 function showRegisterPage() {
   document.getElementById("content").innerHTML =
     window.templates.registerForm();
-  document
-    .getElementById("register-form")
-    .addEventListener("submit", function (event) {
+
+  const registerForm = document.getElementById("register-form");
+  if (registerForm) {
+    registerForm.addEventListener("submit", function (event) {
       if (window.appForms && window.appForms.submitRegister) {
         window.appForms.submitRegister(event);
       } else {
-        console.error("appForms module not loaded correctly");
+        console.error("appForms.submitRegister not loaded");
         event.preventDefault();
       }
     });
+  }
 }
 
 // Show create post page
 function showCreatePostPage() {
   document.getElementById("content").innerHTML =
     window.templates.createPostForm();
-  document
-    .getElementById("create-post-form")
-    .addEventListener("submit", function (event) {
+
+  const createPostForm = document.getElementById("create-post-form");
+  if (createPostForm) {
+    createPostForm.addEventListener("submit", function (event) {
       if (window.appForms && window.appForms.submitPost) {
         window.appForms.submitPost(event);
       } else {
-        console.error("appForms module not loaded correctly");
+        console.error("appForms.submitPost not loaded");
         event.preventDefault();
       }
     });
+  }
 }
 
 // Show error page

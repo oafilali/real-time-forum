@@ -18,6 +18,10 @@ async function submitLogin(event) {
       window.state.sessionID = data.sessionID;
       window.state.username = data.username;
 
+      // Dispatch an event to notify other modules about the state update
+      window.dispatchEvent(new Event("stateUpdated"));
+
+      // Update UI with new login state
       if (window.appCore && window.appCore.updateUI) {
         window.appCore.updateUI();
       } else {
@@ -30,6 +34,7 @@ async function submitLogin(event) {
         window.chatConnection.startChecking();
       }
 
+      // Navigate to homepage
       if (window.appCore && window.appCore.navigate) {
         window.appCore.navigate("/");
       } else {
