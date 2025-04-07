@@ -5,7 +5,6 @@ import (
 	"forum/internal/reaction"
 	"forum/internal/session"
 	"forum/internal/util"
-	"log"
 	"net/http"
 )
 
@@ -16,26 +15,30 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate session
 	sessionID, err := session.GetUserIDFromSession(r)
 	if err != nil {
 		util.ExecuteJSON(w, model.MsgData{"Invalid session, please log in"}, http.StatusUnauthorized)
 		return
 	}
 
+	// Get request parameters
 	itemID := r.FormValue("item_id")
+	isComment := r.FormValue("is_comment") == "true"
+	reactionType := r.FormValue("type") // "like" or "dislike"
+
+	// Validate inputs
 	if itemID == "" {
 		util.ExecuteJSON(w, model.MsgData{"Item ID is missing"}, http.StatusBadRequest)
 		return
 	}
 
-	isComment := r.FormValue("is_comment") == "true"
-	reactionType := r.FormValue("type") // "like" or "dislike"
-
+	// Process reaction
 	if err := reaction.LikeItem(sessionID, itemID, isComment, reactionType); err != nil {
-		log.Println("Failed to like the item:", err)
-		util.ExecuteJSON(w, model.MsgData{"Failed to like the item"}, http.StatusInternalServerError)
+		util.ExecuteJSON(w, model.MsgData{"Failed to process reaction"}, http.StatusInternalServerError)
 		return
 	}
 
+	// Send success response
 	util.ExecuteJSON(w, model.MsgData{"Reaction recorded successfully"}, http.StatusOK)
 }

@@ -5,7 +5,6 @@ import (
 	"forum/internal/model"
 	"forum/internal/session"
 	"forum/internal/util"
-	"log"
 	"net/http"
 )
 
@@ -16,17 +15,17 @@ func UserStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get user ID from session
 	userID, err := session.GetUserIDFromSession(r)
 	
+	// Initialize username
 	var username string
 	if err == nil && userID > 0 {
-		err = database.Db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
-		if err != nil {
-			log.Println("Error fetching username:", err)
-			// Not returning error to client, just logging it
-		}
+		// Attempt to fetch username
+		_ = database.Db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 	}
 	
+	// Prepare response data
 	data := struct {
 		SessionID int    `json:"sessionID"`
 		Username  string `json:"username"`
@@ -37,5 +36,6 @@ func UserStatusHandler(w http.ResponseWriter, r *http.Request) {
 		LoggedIn:  userID > 0,
 	}
 	
+	// Return user status
 	util.ExecuteJSON(w, data, http.StatusOK)
 }

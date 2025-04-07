@@ -1,22 +1,20 @@
 package util
 
 import (
-	"log"
+	"errors"
 	"net/http"
 )
 
-func ErrorCheckHandlers(w http.ResponseWriter, r *http.Request, msg string, err error, code int) bool {
-	if err != nil {
-		log.Println(msg, err)
-		ErrorHandler(w, r, code, msg)
-		return true
-	}
-	return false
-}
+// Custom errors
+var (
+	ErrInvalidCredentials = errors.New("invalid credentials")
+)
 
+// ErrorHandler manages generic error responses
 func ErrorHandler(w http.ResponseWriter, r *http.Request, errorCode int, errorMessage string) {
-	w.WriteHeader(errorCode) // Ensure status code is set before writing the response body
-
+	w.WriteHeader(errorCode)
+	
+	// In a real application, you might want to log the error
 	data := struct {
 		ErrorCode    int
 		ErrorMessage string
@@ -25,10 +23,9 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request, errorCode int, errorMe
 		ErrorMessage: errorMessage,
 	}
 
+	// Assuming Templates is defined in template.go
 	err := Templates.ExecuteTemplate(w, "error.html", data)
 	if err != nil {
-		log.Println("Error loading the page:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"forum/internal/session"
 	"forum/internal/user"
 	"forum/internal/util"
-	"log"
 	"net/http"
 )
 
@@ -16,24 +15,25 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Get either email or username as identifier
+	// Get login credentials
 	identifier := r.FormValue("identifier")
 	password := r.FormValue("password")
 
+	// Validate inputs
 	if identifier == "" || password == "" {
 		util.ExecuteJSON(w, model.MsgData{"Identifier and password are required"}, http.StatusBadRequest)
 		return
 	}
 
+	// Authenticate user
 	userID, err := user.AuthenticateUser(identifier, password)
 	if err != nil {
-		log.Println("Invalid credentials:", err)
 		util.ExecuteJSON(w, model.MsgData{"Invalid identifier or password"}, http.StatusUnauthorized)
 		return
 	}
 
+	// Create session
 	if err := session.CreateSession(w, userID); err != nil {
-		log.Println("Session creation failed:", err)
 		util.ExecuteJSON(w, model.MsgData{"Session creation failed"}, http.StatusInternalServerError)
 		return
 	}
@@ -42,6 +42,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var username string
 	_ = database.Db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 
+	// Send successful login response
 	util.ExecuteJSON(w, struct {
 		Message   string `json:"message"`
 		SessionID int    `json:"sessionID"`

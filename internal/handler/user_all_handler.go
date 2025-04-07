@@ -4,7 +4,6 @@ import (
 	"forum/internal/database"
 	"forum/internal/model"
 	"forum/internal/util"
-	"log"
 	"net/http"
 )
 
@@ -15,14 +14,15 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Query all users
 	rows, err := database.Db.Query("SELECT id, username FROM users")
 	if err != nil {
-		log.Println("Error fetching users:", err)
 		util.ExecuteJSON(w, model.MsgData{"Failed to load users"}, http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
+	// Struct to hold user information
 	type UserInfo struct {
 		ID       int    `json:"id"`
 		Username string `json:"username"`
@@ -30,10 +30,11 @@ func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	var users []UserInfo
 
+	// Scan and collect user data
 	for rows.Next() {
 		var user UserInfo
 		if err := rows.Scan(&user.ID, &user.Username); err != nil {
-			log.Println("Error scanning user row:", err)
+			// Skip individual errors to return as many users as possible
 			continue
 		}
 		users = append(users, user)

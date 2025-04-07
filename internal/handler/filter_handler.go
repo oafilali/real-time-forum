@@ -6,7 +6,6 @@ import (
 	"forum/internal/model"
 	"forum/internal/session"
 	"forum/internal/util"
-	"log"
 	"net/http"
 )
 
@@ -17,42 +16,45 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    sessionID, err := session.GetUserIDFromSession(r)
-    if err != nil || sessionID == 0 {
-        log.Println("Unauthorized access attempt to view post")
-        util.ExecuteJSON(w, model.MsgData{"Unauthorized: Please log in to view posts"}, http.StatusUnauthorized)
-        return
-    }
-
-	userID, _ := session.GetUserIDFromSession(r) // Get logged-in user ID (if any)
-	var username string
-	if userID > 0 {
-		_ = database.Db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+	sessionID, err := session.GetUserIDFromSession(r)
+	if err != nil || sessionID == 0 {
+		util.ExecuteJSON(w, model.MsgData{"Unauthorized: Please log in to view posts"}, http.StatusUnauthorized)
+		return
 	}
 
+	// Get logged-in user details
+	var username string
+	if sessionID > 0 {
+		_ = database.Db.QueryRow("SELECT username FROM users WHERE id = ?", sessionID).Scan(&username)
+	}
+
+	// Get filter parameters
 	category := r.URL.Query().Get("category")
 	userCreated := r.URL.Query().Get("user_created") == "true"
 	liked := r.URL.Query().Get("liked") == "true"
 
 	var rows *sql.Rows
+	var queryErr error
 
-	if userCreated && userID > 0 {
-		rows, err = database.Db.Query("SELECT id, title, category FROM posts WHERE user_id = ?", userID)
-	} else if liked && userID > 0 {
-		rows, err = database.Db.Query(`
-            SELECT p.id, p.title, p.category 
-            FROM posts p
-            JOIN reactions r ON p.id = r.post_id 
-            WHERE r.user_id = ? AND r.type = 'like'
-        `, userID)
-	} else if category != "" {
-		rows, err = database.Db.Query("SELECT id, title, category FROM posts WHERE category LIKE ?", "%"+category+"%")
-	} else {
+	// Determine which query to run based on filter
+	switch {
+	case userCreated && sessionID > 0:
+		rows, queryErr = database.Db.Query("SELECT id, title, category FROM posts WHERE user_id = ?", sessionID)
+	case liked && sessionID > 0:
+		rows, queryErr = database.Db.Query(`
+			SELECT p.id, p.title, p.category 
+			FROM posts p
+			JOIN reactions r ON p.id = r.post_id 
+			WHERE r.user_id = ? AND r.type = 'like'
+		`, sessionID)
+	case category != "":
+		rows, queryErr = database.Db.Query("SELECT id, title, category FROM posts WHERE category LIKE ?", "%"+category+"%")
+	default:
 		util.ExecuteJSON(w, model.MsgData{"Invalid filter request"}, http.StatusBadRequest)
 		return
 	}
-	if err != nil {
-		log.Println("Failed to fetch posts:", err)
+
+	if queryErr != nil {
 		util.ExecuteJSON(w, model.MsgData{"Failed to fetch posts"}, http.StatusInternalServerError)
 		return
 	}
@@ -62,9 +64,7 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 	var posts []model.PostData
 	for rows.Next() {
 		var post model.PostData
-		err = rows.Scan(&post.ID, &post.Title, &post.Category)
-		if err != nil {
-			log.Println("Failed to scan post:", err)
+		if err := rows.Scan(&post.ID, &post.Title, &post.Category); err != nil {
 			util.ExecuteJSON(w, model.MsgData{"Failed to scan post"}, http.StatusInternalServerError)
 			return
 		}
@@ -80,7 +80,7 @@ func FilterHandler(w http.ResponseWriter, r *http.Request) {
 	}{
 		Category:  category,
 		Posts:     posts,
-		SessionID: userID,
+		SessionID: sessionID,
 		Username:  username,
 	}, http.StatusOK)
 }
