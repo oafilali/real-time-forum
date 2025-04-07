@@ -10,11 +10,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// WebSocket upgrader
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all connections for now, can be more restrictive in production
+		return true // Allow all connections
 	},
 }
 
@@ -23,16 +24,17 @@ type Connection struct {
 	ws *websocket.Conn
 }
 
-// ServeWs handles websocket requests from clients
+// ServeWs handles websocket connections
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, userID int, username string) {
+	// Upgrade HTTP to WebSocket
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Error upgrading connection:", err)
 		return
 	}
 	
+	// Create client and connection
 	conn := &Connection{ws: ws}
-	
 	client := &Client{
 		UserID:   userID,
 		Username: username,
@@ -41,21 +43,19 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, userID int, usern
 		Conn:     conn,
 	}
 
-	// Register client
+	// Register with hub
 	client.Hub.Register <- client
-	log.Printf("Client registered: UserID=%d, Username=%s", client.UserID, client.Username)
 
-	// Start goroutines for reading and writing
+	// Start read/write processes
 	go client.readPump()
 	go client.writePump()
 }
 
-// readPump handles incoming messages from the client
+// readPump handles incoming messages
 func (c *Client) readPump() {
 	defer func() {
 		c.Hub.Unregister <- c
 		c.Conn.ws.Close()
-		log.Printf("Client disconnected: UserID=%d", c.UserID)
 	}()
 
 	c.Conn.ws.SetReadLimit(4096)
@@ -68,20 +68,16 @@ func (c *Client) readPump() {
 	for {
 		_, data, err := c.Conn.ws.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("WebSocket error: %v", err)
-			}
 			break
 		}
 
-		log.Printf("Received message from user %d: %s", c.UserID, string(data))
-
+		// Parse the message
 		var message Message
 		if err := json.Unmarshal(data, &message); err != nil {
-			log.Printf("Error parsing message JSON: %v", err)
 			continue
 		}
 
+		// Handle message based on type
 		switch message.Type {
 		case "message":
 			handleChatMessage(c, message)
@@ -95,18 +91,14 @@ func (c *Client) readPump() {
 
 // handleChatMessage processes chat messages
 func handleChatMessage(c *Client, message Message) {
-	// Set sender ID and current timestamp
+	// Set sender and store in database
 	senderID := c.UserID
 	receiverID := message.ReceiverID
 	content := message.Content
 	
-	// Store message in database
-	if err := StoreMessage(senderID, receiverID, content); err != nil {
-		log.Printf("Failed to store message: %v", err)
-		return
-	}
+	StoreMessage(senderID, receiverID, content)
 	
-	// Create response message
+	// Create response with timestamp
 	timestamp := time.Now().Format(time.RFC3339)
 	responseMsg := Message{
 		Type:       "message",
@@ -117,36 +109,19 @@ func handleChatMessage(c *Client, message Message) {
 		Username:   c.Username,
 	}
 	
-	// Marshal response
-	respData, err := json.Marshal(responseMsg)
-	if err != nil {
-		log.Printf("Error marshaling response message: %v", err)
-		return
-	}
-	
-	// Send to recipient if online
-	sentToRecipient := c.Hub.SendToUser(receiverID, respData)
-	log.Printf("Message to user %d delivered: %v", receiverID, sentToRecipient)
-	
-	// Send confirmation back to sender
-	select {
-	case c.Send <- respData:
-		log.Printf("Message confirmation sent to sender %d", senderID)
-	default:
-		log.Printf("Failed to send confirmation to sender %d: channel full", senderID)
-	}
+	// Send to both sender and receiver
+	respData, _ := json.Marshal(responseMsg)
+	c.Hub.SendToUser(receiverID, respData)
+	c.Send <- respData
 }
 
-// handleHistoryRequest handles requests for message history
+// handleHistoryRequest gets chat history
 func handleHistoryRequest(c *Client, message Message) {
 	otherUserID := message.ReceiverID
 	
-	log.Printf("History requested between users %d and %d", c.UserID, otherUserID)
-	
-	// Get message history between these users
+	// Get message history between users
 	messages, err := GetMessageHistory(c.UserID, otherUserID, 10)
 	if err != nil {
-		log.Printf("Error retrieving message history: %v", err)
 		return
 	}
 	
@@ -156,67 +131,52 @@ func handleHistoryRequest(c *Client, message Message) {
 			messages[i].Username = c.Username
 		} else {
 			var username string
-			err := database.Db.QueryRow("SELECT username FROM users WHERE id = ?", messages[i].SenderID).Scan(&username)
-			if err != nil {
-				messages[i].Username = "Unknown"
-			} else {
-				messages[i].Username = username
-			}
+			database.Db.QueryRow("SELECT username FROM users WHERE id = ?", messages[i].SenderID).Scan(&username)
+			messages[i].Username = username
 		}
 	}
 	
-	// Send history back to client
-	response := CreateHistoryResponseMessage(messages)
+	// Send history to client
+	response, _ := json.Marshal(map[string]interface{}{
+		"type":     "history",
+		"messages": messages,
+	})
 	
-	select {
-	case c.Send <- response:
-		log.Printf("Message history sent to user %d", c.UserID)
-	default:
-		log.Printf("Failed to send history to user %d: channel full", c.UserID)
-	}
+	c.Send <- response
 }
 
-// handleMoreHistoryRequest handles request for loading more message history
+// handleMoreHistoryRequest gets older messages
 func handleMoreHistoryRequest(c *Client, message Message) {
 	otherUserID := message.ReceiverID
-	before := message.Timestamp // Use the Timestamp field to pass the "before" parameter
+	before := message.Timestamp
 	
-	log.Printf("More history requested between users %d and %d before %s", c.UserID, otherUserID, before)
-	
-	// Get message history between these users before the specified timestamp
+	// Get older messages
 	messages, err := GetMoreMessageHistory(c.UserID, otherUserID, before, 10)
 	if err != nil {
-		log.Printf("Error retrieving more message history: %v", err)
 		return
 	}
 	
-	// Add usernames to messages
+	// Add usernames 
 	for i := range messages {
 		if messages[i].SenderID == c.UserID {
 			messages[i].Username = c.Username
 		} else {
 			var username string
-			err := database.Db.QueryRow("SELECT username FROM users WHERE id = ?", messages[i].SenderID).Scan(&username)
-			if err != nil {
-				messages[i].Username = "Unknown"
-			} else {
-				messages[i].Username = username
-			}
+			database.Db.QueryRow("SELECT username FROM users WHERE id = ?", messages[i].SenderID).Scan(&username)
+			messages[i].Username = username
 		}
 	}
 	
-	// Send history back to client
-	response := CreateMoreHistoryResponseMessage(messages)
+	// Send response
+	response, _ := json.Marshal(map[string]interface{}{
+		"type":     "more_history",
+		"messages": messages,
+	})
 	
-	select {
-	case c.Send <- response:
-		log.Printf("More message history sent to user %d", c.UserID)
-	default:
-		log.Printf("Failed to send more history to user %d: channel full", c.UserID)
-	}
+	c.Send <- response
 }
 
-// writePump handles sending messages to the client
+// writePump sends messages to the client
 func (c *Client) writePump() {
 	ticker := time.NewTicker(54 * time.Second)
 	defer func() {
@@ -229,7 +189,6 @@ func (c *Client) writePump() {
 		case message, ok := <-c.Send:
 			c.Conn.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if !ok {
-				// The hub closed the channel
 				c.Conn.ws.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -240,7 +199,7 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
-			// Add queued messages to the current websocket message
+			// Add queued messages
 			n := len(c.Send)
 			for i := 0; i < n; i++ {
 				w.Write([]byte{'\n'})
@@ -250,7 +209,9 @@ func (c *Client) writePump() {
 			if err := w.Close(); err != nil {
 				return
 			}
+			
 		case <-ticker.C:
+			// Send ping to keep connection alive
 			c.Conn.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.Conn.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return

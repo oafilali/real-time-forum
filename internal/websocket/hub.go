@@ -2,28 +2,26 @@ package websocket
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
-	"time"
 )
 
-// Hub maintains the set of active clients and broadcasts messages to the clients
+// Hub maintains all active client connections
 type Hub struct {
-	// Registered clients
-	Clients    map[int]*Client
+	// Registered clients by user ID
+	Clients map[int]*Client
 	
-	// Register requests from the clients
-	Register   chan *Client
+	// Client registration channel
+	Register chan *Client
 	
-	// Unregister requests from clients
+	// Client unregistration channel
 	Unregister chan *Client
 	
-	// Mutex for thread-safe operations on clients map
-	mutex      sync.Mutex
+	// Mutex for thread-safety
+	mutex sync.Mutex
 }
 
-// Client represents a connected websocket client
+// Client represents a connected user
 type Client struct {
 	UserID   int
 	Username string
@@ -32,7 +30,7 @@ type Client struct {
 	Conn     *Connection
 }
 
-// NewHub creates a new Hub
+// NewHub creates a new hub for managing clients
 func NewHub() *Hub {
 	return &Hub{
 		Clients:    make(map[int]*Client),
@@ -41,14 +39,13 @@ func NewHub() *Hub {
 	}
 }
 
-// Run starts the hub and handles client registration/unregistration
+// Run starts the hub and handles client events
 func (h *Hub) Run() {
 	log.Println("Starting WebSocket hub")
 	for {
 		select {
 		case client := <-h.Register:
 			h.mutex.Lock()
-			log.Printf("Registering client: UserID=%d, Username=%s", client.UserID, client.Username)
 			h.Clients[client.UserID] = client
 			h.mutex.Unlock()
 			h.broadcastUserList()
@@ -56,7 +53,6 @@ func (h *Hub) Run() {
 		case client := <-h.Unregister:
 			h.mutex.Lock()
 			if _, ok := h.Clients[client.UserID]; ok {
-				log.Printf("Unregistering client: UserID=%d, Username=%s", client.UserID, client.Username)
 				delete(h.Clients, client.UserID)
 				close(client.Send)
 			}
@@ -66,78 +62,45 @@ func (h *Hub) Run() {
 	}
 }
 
-// broadcastUserList sends the list of online users to all clients
+// broadcastUserList sends the updated user list to all clients
 func (h *Hub) broadcastUserList() {
     h.mutex.Lock()
     defer h.mutex.Unlock()
     
-    // Get all online users with their last message data
-    usersWithData := make(map[int]struct{
-        UserID    int
-        Username  string
-        LastMessage *time.Time
-    })
-    
-    // First populate with basic user info
-    for userID, client := range h.Clients {
-        usersWithData[userID] = struct{
-            UserID    int
-            Username  string
-            LastMessage *time.Time
-        }{
-            UserID:   userID,
-            Username: client.Username,
-            LastMessage: nil,
-        }
-    }
-    
-    // Prepare all users data for sending
+    // Prepare user list for sending
     var users []map[string]interface{}
-    
-    for userID, userData := range usersWithData {
-        // For each user, get their last conversations
-        lastMessages, err := GetLastNMessagesForUsers(userID, 20)
-        
-        userInfo := map[string]interface{}{
-            "id":       userData.UserID,
-            "username": userData.Username,
-        }
-        
-        // If we have message history, add it
-        if err == nil && len(lastMessages) > 0 {
-            messagesData := make(map[string]interface{})
-            for otherUserID, msg := range lastMessages {
-                messagesData[fmt.Sprintf("%d", otherUserID)] = map[string]interface{}{
-                    "timestamp": msg.Timestamp,
-                    "content":   msg.Content,
-                    "sender_id": msg.SenderID,
-                }
-            }
-            userInfo["lastMessages"] = messagesData
-        }
-        
-        users = append(users, userInfo)
+    for userID, client := range h.Clients {
+        users = append(users, map[string]interface{}{
+            "id":       userID,
+            "username": client.Username,
+        })
     }
 
+    // Create message object
     message := map[string]interface{}{
         "type":  "user_list",
         "users": users,
     }
 
+    // Convert to JSON
     data, err := json.Marshal(message)
     if err != nil {
-        log.Printf("Error marshaling user list: %v", err)
+        log.Printf("Error creating user list: %v", err)
         return
     }
 
-    log.Printf("Broadcasting user list with %d users", len(h.Clients))
+    // Send to all clients
+    h.broadcastMessage(data)
+}
+
+// broadcastMessage sends a message to all connected clients
+func (h *Hub) broadcastMessage(message []byte) {
     for _, client := range h.Clients {
         select {
-        case client.Send <- data:
+        case client.Send <- message:
             // Message sent successfully
         default:
-            // Skip clients with full message queues
-            log.Printf("Skipping client %d due to full message queue", client.UserID)
+            // Skip client if their channel is full
         }
     }
 }
@@ -160,24 +123,10 @@ func (h *Hub) SendToUser(userID int, message []byte) bool {
 	}
 }
 
-// GetOnlineUsers returns a list of all online user IDs
-func (h *Hub) GetOnlineUsers() []int {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-	
-	var users []int
-	for userID := range h.Clients {
-		users = append(users, userID)
-	}
-	
-	return users
-}
-
-// IsUserOnline checks if a user is currently online
+// IsUserOnline checks if a user is currently connected
 func (h *Hub) IsUserOnline(userID int) bool {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	
 	_, exists := h.Clients[userID]
 	return exists
 }

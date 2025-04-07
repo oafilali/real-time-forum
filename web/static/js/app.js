@@ -13,11 +13,14 @@ window.state = state;
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", async function () {
+  // When state updates, check WebSocket connection
   window.addEventListener("stateUpdated", function () {
     if (typeof checkAndConnectWebSocket === "function") {
       checkAndConnectWebSocket();
     }
   });
+
+  // Check login status and set up page
   await checkLogin();
   setupNavigationEvents();
   loadCurrentPage();
@@ -26,7 +29,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 // AUTH & USER FUNCTIONS
 // ---------------------
 
-// Check if user is logged in
 // Check if user is logged in
 async function checkLogin() {
   try {
@@ -37,6 +39,7 @@ async function checkLogin() {
     const wasLoggedIn = state.sessionID > 0;
     const isLoggedIn = data.sessionID > 0;
 
+    // Update state
     state.sessionID = data.sessionID;
     state.username = data.username;
     updateUI();
@@ -68,32 +71,32 @@ function updateUI() {
   document.getElementById("auth-box").innerHTML = templates.authBox(
     state.sessionID,
     state.username
-  )
+  );
 
   // Add logout event listener if logged in
   if (state.sessionID) {
     document
       .getElementById("logout-link")
-      .addEventListener("click", handleLogout)
+      .addEventListener("click", handleLogout);
   }
 
   // Update sidebar
   document.getElementById("sidebar").innerHTML = templates.sidebar(
     state.sessionID
-  )
+  );
 
   // Update chat sidebar
-  const chatSidebar = document.getElementById("chat-sidebar")
+  const chatSidebar = document.getElementById("chat-sidebar");
   if (chatSidebar) {
     if (state.sessionID) {
-      chatSidebar.innerHTML = templates.chatSidebar()
-      
-      // Add this line - fetch users when UI is updated
+      chatSidebar.innerHTML = templates.chatSidebar();
+
+      // Fetch users when UI is updated
       if (typeof fetchAllUsers === "function") {
         setTimeout(fetchAllUsers, 100);
       }
     } else {
-      chatSidebar.innerHTML = "" // Empty for non-logged-in users
+      chatSidebar.innerHTML = ""; // Empty for non-logged-in users
     }
   }
 }
@@ -173,6 +176,8 @@ function loadCurrentPage() {
   } else {
     showErrorPage("Page not found");
   }
+
+  // Update chat sidebar if needed
   const chatSidebar = document.getElementById("chat-sidebar");
   if (chatSidebar && state.sessionID) {
     chatSidebar.innerHTML = templates.chatSidebar();
@@ -195,7 +200,9 @@ async function loadHomePage() {
       },
     });
 
-    if (!response.ok) throw new Error("Failed to load posts");
+    if (!response.ok) {
+      throw new Error("Failed to load posts");
+    }
 
     const data = await response.json();
     state.posts = data.Posts || [];
@@ -219,7 +226,9 @@ async function loadPostPage(postId) {
       headers: { Accept: "application/json" },
     });
 
-    if (!response.ok) throw new Error("Failed to load post");
+    if (!response.ok) {
+      throw new Error("Failed to load post");
+    }
 
     const data = await response.json();
     state.currentPost = data.post || data.Post;
@@ -251,7 +260,9 @@ async function loadFilteredPosts(queryString) {
       headers: { Accept: "application/json" },
     });
 
-    if (!response.ok) throw new Error("Failed to load filtered posts");
+    if (!response.ok) {
+      throw new Error("Failed to load filtered posts");
+    }
 
     const data = await response.json();
     state.posts = data.posts || [];
@@ -314,7 +325,6 @@ function showErrorPage(message) {
 // Handle login form submission
 async function submitLogin(event) {
   event.preventDefault();
-
   const formData = new FormData(event.target);
 
   try {
@@ -358,7 +368,6 @@ async function submitLogin(event) {
 // Handle register form submission
 async function submitRegister(event) {
   event.preventDefault();
-
   const formData = new FormData(event.target);
 
   // Basic validation
@@ -406,7 +415,6 @@ async function submitRegister(event) {
 // Handle create post submission
 async function submitPost(event) {
   event.preventDefault();
-
   const formData = new FormData(event.target);
 
   try {
@@ -432,7 +440,6 @@ async function submitPost(event) {
 // Handle comment submission
 async function submitComment(event) {
   event.preventDefault();
-
   const formData = new FormData(event.target);
   const postId = formData.get("post_id");
 
