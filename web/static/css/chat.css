@@ -298,6 +298,29 @@
   }
 }
 
+/* User item notification styles */
+.user-item.has-new-message::after {
+  content: "!";
+  position: absolute;
+  top: 10px;
+  right: 25px;
+  background-color: #ff4d4f;
+  color: white;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.user-item.online.has-new-message::after {
+  right: 25px; /* Position beside the online indicator */
+}
+
 @media (max-width: 768px) {
   .main-container {
     flex-direction: column;

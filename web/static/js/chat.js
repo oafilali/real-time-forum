@@ -7,6 +7,7 @@ const onlineUsers = [];
 let allUsers = [];
 let isLoading = false;
 let lastMessagesData = {};
+let usersWithUnreadMessages = new Set(); // Store user IDs who have unread messages
 
 // Reconnection variables
 let reconnectAttempts = 0;
@@ -78,8 +79,8 @@ function connectWebSocket() {
   // Update connection status indicator
   const statusElement = document.getElementById("chat-status");
   if (statusElement) {
-    statusElement.textContent = "Connecting...";
-    statusElement.className = "connecting";
+    statusElement.textContent = "Connected";
+    statusElement.className = "connected";
   }
 
   try {
@@ -178,12 +179,13 @@ function handleUserList(users) {
 function handleMessage(message) {
   displayMessage(message);
 
-  // Show notification if message is not from current chat
-  if (
-    message.sender_id !== state.sessionID &&
-    (!currentChatUser || message.sender_id !== currentChatUser.id)
-  ) {
-    showMessageNotification(message);
+  // If a message is from someone else, mark it as unread
+  if (message.sender_id !== state.sessionID) {
+    // Only mark as unread if we're not currently viewing that user's chat
+    if (!currentChatUser || message.sender_id !== currentChatUser.id) {
+      usersWithUnreadMessages.add(message.sender_id);
+      showMessageNotification(message);
+    }
   }
 }
 
@@ -194,8 +196,12 @@ function showMessageNotification(message) {
   const userItem = document.querySelector(
     `.user-item[data-user-id="${message.sender_id}"]`
   );
+
   if (userItem) {
     senderName = userItem.dataset.username;
+
+    // Add notification indicator to this user
+    userItem.classList.add("has-new-message");
   }
 
   // Create notification if browser supports it
@@ -209,11 +215,6 @@ function showMessageNotification(message) {
     } else if (Notification.permission !== "denied") {
       Notification.requestPermission();
     }
-  }
-
-  // Highlight the user in the list
-  if (userItem) {
-    userItem.classList.add("has-new-message");
   }
 }
 
@@ -249,14 +250,22 @@ function updateUsersList() {
   };
 
   // Sort users:
-  // 1. Online users first
-  // 2. Users with recent messages next (sorted by timestamp)
-  // 3. Then alphabetically
+  // 1. Users with unread messages first
+  // 2. Online users next
+  // 3. Users with recent messages next (sorted by timestamp)
+  // 4. Then alphabetically
   const sortedUsers = [...allUsers].sort((a, b) => {
+    const aHasUnread = usersWithUnreadMessages.has(a.id);
+    const bHasUnread = usersWithUnreadMessages.has(b.id);
+
+    // Users with unread messages first
+    if (aHasUnread && !bHasUnread) return -1;
+    if (!aHasUnread && bHasUnread) return 1;
+
     const aOnline = onlineUsers.includes(a.id);
     const bOnline = onlineUsers.includes(b.id);
 
-    // Online users first
+    // Then online users first
     if (aOnline && !bOnline) return -1;
     if (!aOnline && bOnline) return 1;
 
@@ -290,14 +299,17 @@ function updateUsersList() {
       userItem.classList.add("offline");
     }
 
+    // Add notification indicator if user has unread messages
+    if (usersWithUnreadMessages.has(user.id)) {
+      userItem.classList.add("has-new-message");
+    }
+
     userItem.textContent = user.username;
     userItem.dataset.userId = user.id;
     userItem.dataset.username = user.username;
 
     userItem.addEventListener("click", function () {
       openChat(user.id, user.username);
-      // Remove highlight when clicked
-      this.classList.remove("has-new-message");
     });
 
     usersList.appendChild(userItem);
@@ -309,6 +321,12 @@ function openChat(userId, username) {
   // Ensure userId is an integer
   userId = parseInt(userId, 10);
   currentChatUser = { id: userId, name: username };
+
+  // Clear unread messages for this user
+  usersWithUnreadMessages.delete(userId);
+
+  // Update the user list to remove the notification
+  updateUsersList();
 
   // Update main content area with chat interface
   const content = document.getElementById("content");

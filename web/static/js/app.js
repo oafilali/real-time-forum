@@ -151,6 +151,18 @@ function loadCurrentPage() {
   // Show loading indicator
   content.innerHTML = templates.loading();
 
+  // Check if user is logged in first - redirect to login for protected pages
+  if (
+    !state.sessionID &&
+    (path === "/" ||
+      path === "/index.html" ||
+      path === "/filter" ||
+      path === "/post")
+  ) {
+    showLoginPage();
+    return;
+  }
+
   // Route to correct page handler
   if (path === "/" || path === "/index.html") {
     loadHomePage();
