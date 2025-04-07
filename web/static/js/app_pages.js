@@ -1,3 +1,5 @@
+// app-pages.js - Page loading functions for Forum SPA
+
 // Load the home page with all posts
 async function loadHomePage() {
   try {
@@ -15,13 +17,13 @@ async function loadHomePage() {
     const data = await response.json();
     window.state.posts = data.Posts || [];
 
-    document.getElementById("content").innerHTML = templates.homePage(
+    document.getElementById("content").innerHTML = window.templates.homePage(
       window.state.posts
     );
     setupReactionButtons();
   } catch (error) {
     console.error("Error:", error);
-    document.getElementById("content").innerHTML = templates.error(
+    document.getElementById("content").innerHTML = window.templates.error(
       "Failed to load posts"
     );
   }
@@ -41,7 +43,7 @@ async function loadPostPage(postId) {
     const data = await response.json();
     window.state.currentPost = data.post || data.Post;
 
-    document.getElementById("content").innerHTML = templates.postDetail(
+    document.getElementById("content").innerHTML = window.templates.postDetail(
       window.state.currentPost
     );
 
@@ -55,7 +57,7 @@ async function loadPostPage(postId) {
     }
   } catch (error) {
     console.error("Error:", error);
-    document.getElementById("content").innerHTML = templates.error(
+    document.getElementById("content").innerHTML = window.templates.error(
       "Failed to load post"
     );
   }
@@ -85,13 +87,11 @@ async function loadFilteredPosts(queryString) {
       title = "Liked Posts";
     }
 
-    document.getElementById("content").innerHTML = templates.filteredPosts(
-      title,
-      window.state.posts
-    );
+    document.getElementById("content").innerHTML =
+      window.templates.filteredPosts(title, window.state.posts);
   } catch (error) {
     console.error("Error:", error);
-    document.getElementById("content").innerHTML = templates.error(
+    document.getElementById("content").innerHTML = window.templates.error(
       "Failed to load filtered posts"
     );
   }
@@ -99,31 +99,55 @@ async function loadFilteredPosts(queryString) {
 
 // Show login page
 function showLoginPage() {
-  document.getElementById("content").innerHTML = templates.loginForm();
+  document.getElementById("content").innerHTML = window.templates.loginForm();
   document
     .getElementById("login-form")
-    .addEventListener("submit", window.appForms.submitLogin);
+    .addEventListener("submit", function (event) {
+      if (window.appForms && window.appForms.submitLogin) {
+        window.appForms.submitLogin(event);
+      } else {
+        console.error("appForms module not loaded correctly");
+        event.preventDefault();
+      }
+    });
 }
 
 // Show register page
 function showRegisterPage() {
-  document.getElementById("content").innerHTML = templates.registerForm();
+  document.getElementById("content").innerHTML =
+    window.templates.registerForm();
   document
     .getElementById("register-form")
-    .addEventListener("submit", window.appForms.submitRegister);
+    .addEventListener("submit", function (event) {
+      if (window.appForms && window.appForms.submitRegister) {
+        window.appForms.submitRegister(event);
+      } else {
+        console.error("appForms module not loaded correctly");
+        event.preventDefault();
+      }
+    });
 }
 
 // Show create post page
 function showCreatePostPage() {
-  document.getElementById("content").innerHTML = templates.createPostForm();
+  document.getElementById("content").innerHTML =
+    window.templates.createPostForm();
   document
     .getElementById("create-post-form")
-    .addEventListener("submit", window.appForms.submitPost);
+    .addEventListener("submit", function (event) {
+      if (window.appForms && window.appForms.submitPost) {
+        window.appForms.submitPost(event);
+      } else {
+        console.error("appForms module not loaded correctly");
+        event.preventDefault();
+      }
+    });
 }
 
 // Show error page
 function showErrorPage(message) {
-  document.getElementById("content").innerHTML = templates.error(message);
+  document.getElementById("content").innerHTML =
+    window.templates.error(message);
 }
 
 // Set up reaction buttons (likes/dislikes)
@@ -134,12 +158,16 @@ function setupReactionButtons() {
 
   reactionButtons.forEach((button) => {
     button.addEventListener("click", function () {
-      window.appForms.submitReaction(this);
+      if (window.appForms && window.appForms.submitReaction) {
+        window.appForms.submitReaction(this);
+      } else {
+        console.error("appForms module not loaded correctly");
+      }
     });
   });
 }
 
-// Expose functions to global scope
+// Export page functions
 window.appPages = {
   loadHomePage,
   loadPostPage,

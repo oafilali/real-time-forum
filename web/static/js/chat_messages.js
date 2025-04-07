@@ -1,3 +1,5 @@
+// chat-messages.js - Chat message handling functionality
+
 // Global variables for messages
 const onlineUsers = [];
 const usersWithUnreadMessages = new Set(); // Store user IDs who have unread messages
@@ -19,7 +21,9 @@ function handleUserList(users) {
   }
 
   // Update the UI immediately
-  window.chatUI.updateUsersList();
+  if (window.chatUI && window.chatUI.updateUsersList) {
+    window.chatUI.updateUsersList();
+  }
 }
 
 // Handle incoming messages
@@ -29,7 +33,11 @@ function handleMessage(message) {
   // If a message is from someone else, mark it as unread
   if (message.sender_id !== window.state.sessionID) {
     // Only mark as unread if we're not currently viewing that user's chat
-    const currentChatUser = window.chatUI.currentUser();
+    let currentChatUser = null;
+    if (window.chatUI && window.chatUI.currentUser) {
+      currentChatUser = window.chatUI.currentUser();
+    }
+
     if (!currentChatUser || message.sender_id !== currentChatUser.id) {
       usersWithUnreadMessages.add(message.sender_id);
       showMessageNotification(message);
@@ -39,7 +47,11 @@ function handleMessage(message) {
 
 // Display a received message
 function displayMessage(message) {
-  const currentChatUser = window.chatUI.currentUser();
+  let currentChatUser = null;
+  if (window.chatUI && window.chatUI.currentUser) {
+    currentChatUser = window.chatUI.currentUser();
+  }
+
   // Only display if it's part of the current chat
   if (
     currentChatUser &&
@@ -82,7 +94,10 @@ function displayMessage(message) {
             content: message.content,
             sender_id: message.sender_id,
           };
-          window.chatUI.updateUsersList();
+
+          if (window.chatUI && window.chatUI.updateUsersList) {
+            window.chatUI.updateUsersList();
+          }
 
           return;
         }
@@ -100,10 +115,17 @@ function displayMessage(message) {
     }
 
     const time = new Date(message.timestamp).toLocaleTimeString();
+    const escapeHTML =
+      window.chatUI && window.chatUI.escapeHTML
+        ? window.chatUI.escapeHTML
+        : (text) =>
+            text
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+
     messageElem.innerHTML = `
-            <div class="message-text">${window.chatUI.escapeHTML(
-              message.content
-            )}</div>
+            <div class="message-text">${escapeHTML(message.content)}</div>
             <div class="message-time" data-timestamp="${
               message.timestamp
             }">${time}</div>
@@ -125,7 +147,10 @@ function displayMessage(message) {
       content: message.content,
       sender_id: message.sender_id,
     };
-    window.chatUI.updateUsersList();
+
+    if (window.chatUI && window.chatUI.updateUsersList) {
+      window.chatUI.updateUsersList();
+    }
   } else {
     // Still update the last messages data for user sorting
     if (message.sender_id !== window.state.sessionID) {
@@ -138,7 +163,10 @@ function displayMessage(message) {
         content: message.content,
         sender_id: message.sender_id,
       };
-      window.chatUI.updateUsersList();
+
+      if (window.chatUI && window.chatUI.updateUsersList) {
+        window.chatUI.updateUsersList();
+      }
     }
   }
 }
@@ -174,13 +202,17 @@ function showMessageNotification(message) {
 
 // Send a message
 function sendMessage() {
-  const socket = window.chatConnection.socket();
+  const socket = window.chatConnection ? window.chatConnection.socket() : null;
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     alert("WebSocket not connected. Please refresh the page.");
     return;
   }
 
-  const currentChatUser = window.chatUI.currentUser();
+  let currentChatUser = null;
+  if (window.chatUI && window.chatUI.currentUser) {
+    currentChatUser = window.chatUI.currentUser();
+  }
+
   if (!currentChatUser) {
     alert("Please select a user to chat with");
     return;
@@ -207,7 +239,9 @@ function sendMessage() {
   };
 
   // Add message locally immediately for better UX
-  window.chatUI.displayLocalMessage(content);
+  if (window.chatUI && window.chatUI.displayLocalMessage) {
+    window.chatUI.displayLocalMessage(content);
+  }
 
   // Send via websocket
   try {
@@ -240,7 +274,7 @@ function getLastMessagesData(userId) {
   return lastMessagesData[userId] || null;
 }
 
-// Export the chat messages module
+// Export the chat messages module functions
 window.chatMessages = {
   handleUserList,
   handleMessage,
@@ -258,7 +292,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Check if we need to connect WebSocket
   if (window.state && window.state.sessionID > 0) {
     setTimeout(() => {
-      if (window.chatConnection) {
+      if (window.chatConnection && window.chatConnection.connect) {
         window.chatConnection.connect();
       }
     }, 1000);
@@ -267,7 +301,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Only start the interval if user is already logged in
 if (window.state && window.state.sessionID > 0) {
-  if (window.chatConnection) {
+  if (window.chatConnection && window.chatConnection.startChecking) {
     window.chatConnection.startChecking();
   }
 }

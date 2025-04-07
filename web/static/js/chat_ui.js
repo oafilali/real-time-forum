@@ -1,7 +1,10 @@
+// chat-ui.js - Chat user interface functionality
+
 // Global variables for chat UI
 let currentChatUser = null;
 let allUsers = [];
 let isLoading = false;
+let userListRefreshInterval = null;
 
 // Fetch all registered users
 async function fetchAllUsers() {
@@ -24,7 +27,8 @@ async function fetchAllUsers() {
       // If unauthorized, check login status
       if (
         response.status === 401 &&
-        typeof window.appCore.checkLogin === "function"
+        window.appCore &&
+        window.appCore.checkLogin
       ) {
         window.appCore.checkLogin();
       }
@@ -63,17 +67,20 @@ function updateUsersList() {
 
   // Get latest message timestamp for a user
   const getLatestMessageTime = (userId) => {
-    if (!window.chatMessages.getLastMessagesData(userId)) return null;
+    if (!window.chatMessages || !window.chatMessages.getLastMessagesData) {
+      return null;
+    }
+
+    const lastMessagesData = window.chatMessages.getLastMessagesData(userId);
+    if (!lastMessagesData) return null;
 
     let latestTime = null;
-    Object.values(window.chatMessages.getLastMessagesData(userId)).forEach(
-      (msg) => {
-        const msgTime = new Date(msg.timestamp).getTime();
-        if (!latestTime || msgTime > latestTime) {
-          latestTime = msgTime;
-        }
+    Object.values(lastMessagesData).forEach((msg) => {
+      const msgTime = new Date(msg.timestamp).getTime();
+      if (!latestTime || msgTime > latestTime) {
+        latestTime = msgTime;
       }
-    );
+    });
     return latestTime;
   };
 
@@ -83,6 +90,8 @@ function updateUsersList() {
   // 3. Users with recent messages next (sorted by timestamp)
   // 4. Then alphabetically
   const sortedUsers = [...allUsers].sort((a, b) => {
+    if (!window.chatMessages) return 0;
+
     const aHasUnread = window.chatMessages.hasUnreadMessages(a.id);
     const bHasUnread = window.chatMessages.hasUnreadMessages(b.id);
 
@@ -121,14 +130,14 @@ function updateUsersList() {
     const userItem = document.createElement("div");
     userItem.className = "user-item";
 
-    if (window.chatMessages.isUserOnline(user.id)) {
+    if (window.chatMessages && window.chatMessages.isUserOnline(user.id)) {
       userItem.classList.add("online");
     } else {
       userItem.classList.add("offline");
     }
 
     // Add notification indicator if user has unread messages
-    if (window.chatMessages.hasUnreadMessages(user.id)) {
+    if (window.chatMessages && window.chatMessages.hasUnreadMessages(user.id)) {
       userItem.classList.add("has-new-message");
     }
 
@@ -151,7 +160,9 @@ function openChat(userId, username) {
   currentChatUser = { id: userId, name: username };
 
   // Clear unread messages for this user
-  window.chatMessages.clearUnreadMessages(userId);
+  if (window.chatMessages) {
+    window.chatMessages.clearUnreadMessages(userId);
+  }
 
   // Update the user list to remove the notification
   updateUsersList();
@@ -162,20 +173,28 @@ function openChat(userId, username) {
     return;
   }
 
-  content.innerHTML = templates.chatInterface(username);
+  content.innerHTML = window.templates.chatInterface(username);
 
   // Set up back button
   document
     .getElementById("back-to-posts")
     .addEventListener("click", function () {
-      window.appPages.loadHomePage();
+      if (window.appPages) {
+        window.appPages.loadHomePage();
+      } else {
+        window.location.href = "/";
+      }
       currentChatUser = null;
     });
 
   // Set up message send button
   document
     .getElementById("send-message-button")
-    .addEventListener("click", window.chatMessages.sendMessage);
+    .addEventListener("click", function () {
+      if (window.chatMessages && window.chatMessages.sendMessage) {
+        window.chatMessages.sendMessage();
+      }
+    });
 
   // Set up enter key to send message
   document
@@ -183,12 +202,14 @@ function openChat(userId, username) {
     .addEventListener("keydown", function (e) {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        window.chatMessages.sendMessage();
+        if (window.chatMessages && window.chatMessages.sendMessage) {
+          window.chatMessages.sendMessage();
+        }
       }
     });
 
   // Request message history
-  const socket = window.chatConnection.socket();
+  const socket = window.chatConnection ? window.chatConnection.socket() : null;
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(
       JSON.stringify({
@@ -288,9 +309,11 @@ function displayMessageHistory(messages) {
   }
 
   // Display messages
-  messages.forEach((message) => {
-    window.chatMessages.displayMessage(message);
-  });
+  if (window.chatMessages && window.chatMessages.displayMessage) {
+    messages.forEach((message) => {
+      window.chatMessages.displayMessage(message);
+    });
+  }
 
   // Scroll to bottom
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -418,7 +441,9 @@ function setupScrollListener() {
       oldestMessageTimestamp = findOldestMessageTimestamp();
 
       // Request more messages using the timestamp
-      const socket = window.chatConnection.socket();
+      const socket = window.chatConnection
+        ? window.chatConnection.socket()
+        : null;
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(
           JSON.stringify({
@@ -461,20 +486,25 @@ function setupScrollListener() {
 // Setup user list refresh
 function setupUserListRefresh() {
   // Refresh user list every 30 seconds if user is logged in
-  if (window.userListRefreshInterval) {
-    clearInterval(window.userListRefreshInterval);
+  if (userListRefreshInterval) {
+    clearInterval(userListRefreshInterval);
   }
 
   if (window.state && window.state.sessionID > 0) {
-    window.userListRefreshInterval = setInterval(() => {
+    userListRefreshInterval = setInterval(() => {
       fetchAllUsers();
     }, 30000); // Every 30 seconds
   }
 }
 
-// Export the chat UI module
+// Get current chat user
+function getCurrentUser() {
+  return currentChatUser;
+}
+
+// Export chat UI functions
 window.chatUI = {
-  currentUser: () => currentChatUser,
+  currentUser: getCurrentUser,
   fetchAllUsers,
   updateUsersList,
   openChat,
@@ -483,6 +513,7 @@ window.chatUI = {
   displayMoreMessageHistory,
   setupScrollListener,
   setupUserListRefresh,
+  escapeHTML,
 };
 
 // Initialize chat UI when DOM is loaded

@@ -1,3 +1,5 @@
+// app-core.js - Core application functionality for Forum SPA
+
 // Global application state
 const state = {
   sessionID: null,
@@ -6,14 +8,11 @@ const state = {
   currentPost: null,
 };
 
-// Export state for other modules
+// Make state available globally
 window.state = state;
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", async function () {
-  // Load other modules first
-  await loadModules();
-
   // When state updates, check WebSocket connection
   window.addEventListener("stateUpdated", function () {
     if (
@@ -29,12 +28,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   setupNavigationEvents();
   loadCurrentPage();
 });
-
-// Load required modules
-async function loadModules() {
-  // This function would be used if we were using ES modules
-  // For now, we're relying on script tags in the HTML
-}
 
 // Check if user is logged in
 async function checkLogin() {
@@ -72,7 +65,7 @@ async function checkLogin() {
 // Update UI elements after login status change
 function updateUI() {
   // Update auth box
-  document.getElementById("auth-box").innerHTML = templates.authBox(
+  document.getElementById("auth-box").innerHTML = window.templates.authBox(
     state.sessionID,
     state.username
   );
@@ -85,7 +78,7 @@ function updateUI() {
   }
 
   // Update sidebar
-  document.getElementById("sidebar").innerHTML = templates.sidebar(
+  document.getElementById("sidebar").innerHTML = window.templates.sidebar(
     state.sessionID
   );
 
@@ -93,7 +86,7 @@ function updateUI() {
   const chatSidebar = document.getElementById("chat-sidebar");
   if (chatSidebar) {
     if (state.sessionID) {
-      chatSidebar.innerHTML = templates.chatSidebar();
+      chatSidebar.innerHTML = window.templates.chatSidebar();
 
       // Fetch users when UI is updated
       if (window.chatUI && window.chatUI.fetchAllUsers) {
@@ -121,9 +114,6 @@ async function handleLogout(event) {
     console.error("Logout failed:", error);
   }
 }
-
-// NAVIGATION FUNCTIONS
-// -------------------
 
 // Set up navigation event listeners
 function setupNavigationEvents() {
@@ -153,7 +143,7 @@ function loadCurrentPage() {
   const content = document.getElementById("content");
 
   // Show loading indicator
-  content.innerHTML = templates.loading();
+  content.innerHTML = window.templates.loading();
 
   // Check if user is logged in first - redirect to login for protected pages
   if (
@@ -163,50 +153,62 @@ function loadCurrentPage() {
       path === "/filter" ||
       path === "/post")
   ) {
-    window.appPages.showLoginPage();
+    if (window.appPages) {
+      window.appPages.showLoginPage();
+    } else {
+      // Fallback if appPages is not yet loaded
+      console.error("appPages module not loaded");
+      content.innerHTML =
+        "<div>Error: Application modules not loaded correctly.</div>";
+    }
     return;
   }
 
   // Route to correct page handler
   if (path === "/" || path === "/index.html") {
-    window.appPages.loadHomePage();
+    if (window.appPages) window.appPages.loadHomePage();
   } else if (path === "/post") {
     const postId = searchParams.get("id");
     if (postId && postId !== "undefined") {
-      window.appPages.loadPostPage(postId);
+      if (window.appPages) window.appPages.loadPostPage(postId);
     } else {
-      window.appPages.showErrorPage("Post ID is missing or invalid");
+      if (window.appPages)
+        window.appPages.showErrorPage("Post ID is missing or invalid");
     }
   } else if (path === "/filter") {
-    window.appPages.loadFilteredPosts(window.location.search);
+    if (window.appPages)
+      window.appPages.loadFilteredPosts(window.location.search);
   } else if (path === "/login") {
-    window.appPages.showLoginPage();
+    if (window.appPages) window.appPages.showLoginPage();
   } else if (path === "/register") {
-    window.appPages.showRegisterPage();
+    if (window.appPages) window.appPages.showRegisterPage();
   } else if (path === "/createPost") {
     if (state.sessionID) {
-      window.appPages.showCreatePostPage();
+      if (window.appPages) window.appPages.showCreatePostPage();
     } else {
       navigate("/login");
     }
   } else {
-    window.appPages.showErrorPage("Page not found");
+    if (window.appPages) window.appPages.showErrorPage("Page not found");
   }
 
   // Update chat sidebar if needed
   const chatSidebar = document.getElementById("chat-sidebar");
   if (chatSidebar && state.sessionID) {
-    chatSidebar.innerHTML = templates.chatSidebar();
+    chatSidebar.innerHTML = window.templates.chatSidebar();
     if (window.chatUI && window.chatUI.fetchAllUsers) {
       setTimeout(window.chatUI.fetchAllUsers, 100);
     }
   }
 }
 
-// Expose functions to global scope
+// Export core functions
 window.appCore = {
   state,
   checkLogin,
   updateUI,
   navigate,
+  handleLogout,
+  setupNavigationEvents,
+  loadCurrentPage,
 };

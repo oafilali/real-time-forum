@@ -1,3 +1,5 @@
+// chat-connection.js - WebSocket connection management for chat
+
 // Global variables for WebSocket connection
 let socket = null;
 let reconnectAttempts = 0;
@@ -45,7 +47,9 @@ function connect() {
         statusElement.className = "connected";
       }
       reconnectAttempts = 0; // Reset attempts on successful connection
-      window.chatUI.fetchAllUsers();
+      if (window.chatUI && window.chatUI.fetchAllUsers) {
+        window.chatUI.fetchAllUsers();
+      }
     };
 
     socket.onclose = function () {
@@ -74,17 +78,17 @@ function connect() {
       try {
         const data = JSON.parse(event.data);
 
-        if (data.type === "user_list") {
+        if (data.type === "user_list" && window.chatMessages) {
           window.chatMessages.handleUserList(data.users);
-        } else if (data.type === "message") {
+        } else if (data.type === "message" && window.chatMessages) {
           window.chatMessages.handleMessage(data);
-        } else if (data.type === "history") {
+        } else if (data.type === "history" && window.chatUI) {
           if (Array.isArray(data.messages)) {
             window.chatUI.displayMessageHistory(data.messages);
           } else {
             window.chatUI.displayMessageHistory([]);
           }
-        } else if (data.type === "more_history") {
+        } else if (data.type === "more_history" && window.chatUI) {
           if (Array.isArray(data.messages)) {
             window.chatUI.displayMoreMessageHistory(data.messages);
           }
@@ -167,17 +171,27 @@ function stopChecking() {
   }
 }
 
+// Check if WebSocket is connected
+function isConnected() {
+  return socket && socket.readyState === WebSocket.OPEN;
+}
+
+// Get the socket (used by other modules)
+function getSocket() {
+  return socket;
+}
+
 // Add cleanup for when page unloads
 window.addEventListener("beforeunload", function () {
   stopChecking();
 });
 
-// Export chat connection module
+// Export chat connection module functions
 window.chatConnection = {
-  socket: () => socket, // Return current socket
+  socket: getSocket,
   connect,
   checkAndConnectWebSocket,
   startChecking,
   stopChecking,
-  isConnected: () => socket && socket.readyState === WebSocket.OPEN,
+  isConnected,
 };

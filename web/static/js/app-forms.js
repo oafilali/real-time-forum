@@ -1,3 +1,5 @@
+// app-forms.js - Form handling functions for Forum SPA
+
 // Handle login form submission
 async function submitLogin(event) {
   event.preventDefault();
@@ -15,7 +17,12 @@ async function submitLogin(event) {
       // Login successful
       window.state.sessionID = data.sessionID;
       window.state.username = data.username;
-      window.appCore.updateUI();
+
+      if (window.appCore && window.appCore.updateUI) {
+        window.appCore.updateUI();
+      } else {
+        console.error("appCore.updateUI not loaded correctly");
+      }
 
       // Start WebSocket connection after successful login
       if (window.chatConnection) {
@@ -23,7 +30,12 @@ async function submitLogin(event) {
         window.chatConnection.startChecking();
       }
 
-      window.appCore.navigate("/");
+      if (window.appCore && window.appCore.navigate) {
+        window.appCore.navigate("/");
+      } else {
+        console.error("appCore.navigate not loaded correctly");
+        window.location.href = "/";
+      }
     } else {
       // Login failed - show error
       const errorElement = document.getElementById("login-error");
@@ -70,7 +82,12 @@ async function submitRegister(event) {
     if (response.ok) {
       // Registration successful
       alert("Registration successful! Please log in.");
-      window.appCore.navigate("/login");
+      if (window.appCore && window.appCore.navigate) {
+        window.appCore.navigate("/login");
+      } else {
+        console.error("appCore.navigate not loaded correctly");
+        window.location.href = "/login";
+      }
     } else {
       // Registration failed - show error
       const errorElement = document.getElementById("register-error");
@@ -100,7 +117,14 @@ async function submitPost(event) {
 
     if (response.ok && data.id) {
       // Post created successfully
-      setTimeout(() => window.appCore.navigate(`/post?id=${data.id}`), 300);
+      setTimeout(() => {
+        if (window.appCore && window.appCore.navigate) {
+          window.appCore.navigate(`/post?id=${data.id}`);
+        } else {
+          console.error("appCore.navigate not loaded correctly");
+          window.location.href = `/post?id=${data.id}`;
+        }
+      }, 300);
     } else {
       alert(data.message || "Failed to create post");
     }
@@ -124,7 +148,13 @@ async function submitComment(event) {
 
     if (response.ok) {
       // Comment added successfully, reload post
-      window.appPages.loadPostPage(postId);
+      if (window.appPages && window.appPages.loadPostPage) {
+        window.appPages.loadPostPage(postId);
+      } else {
+        console.error("appPages.loadPostPage not loaded correctly");
+        // Fallback reload
+        window.location.reload();
+      }
     } else {
       const data = await response.json();
       alert(data.message || "Failed to add comment");
@@ -139,7 +169,12 @@ async function submitComment(event) {
 async function submitReaction(button) {
   // Check if user is logged in
   if (!window.state.sessionID) {
-    window.appCore.navigate("/login");
+    if (window.appCore && window.appCore.navigate) {
+      window.appCore.navigate("/login");
+    } else {
+      console.error("appCore.navigate not loaded correctly");
+      window.location.href = "/login";
+    }
     return;
   }
 
@@ -162,9 +197,19 @@ async function submitReaction(button) {
       // Reaction successful, reload current view
       if (window.location.pathname === "/post") {
         const postId = new URLSearchParams(window.location.search).get("id");
-        window.appPages.loadPostPage(postId);
+        if (window.appPages && window.appPages.loadPostPage) {
+          window.appPages.loadPostPage(postId);
+        } else {
+          console.error("appPages.loadPostPage not loaded correctly");
+          window.location.reload();
+        }
       } else {
-        window.appPages.loadHomePage();
+        if (window.appPages && window.appPages.loadHomePage) {
+          window.appPages.loadHomePage();
+        } else {
+          console.error("appPages.loadHomePage not loaded correctly");
+          window.location.reload();
+        }
       }
     }
   } catch (error) {
@@ -172,7 +217,7 @@ async function submitReaction(button) {
   }
 }
 
-// Expose functions to global scope
+// Export form functions
 window.appForms = {
   submitLogin,
   submitRegister,
