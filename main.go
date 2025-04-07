@@ -57,7 +57,8 @@ func startServer() {
 	
 	// Register user handlers
 	http.HandleFunc("/user/status", handler.UserStatusHandler)
-		
+	http.HandleFunc("/user/all", handler.GetAllUsersHandler)
+	
 	// WebSocket endpoint
 	http.HandleFunc("/ws", logRequest(handler.WebSocketHandler))
 	log.Println("WebSocket endpoint registered at /ws")

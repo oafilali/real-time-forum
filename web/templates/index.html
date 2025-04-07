@@ -44,26 +44,5 @@
     <script src="/static/js/chat_connection.js"></script>
     <script src="/static/js/chat_messages.js"></script>
     <script src="/static/js/chat_ui.js"></script>
-
-    <!-- Initialize app when everything is loaded -->
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        // Check if modules are properly loaded
-        if (!window.appCore) {
-          console.error("App core module not loaded!");
-        }
-        if (!window.appForms) {
-          console.error("App forms module not loaded!");
-        }
-        if (!window.appPages) {
-          console.error("App pages module not loaded!");
-        }
-        if (!window.chatConnection) {
-          console.error("Chat connection module not loaded!");
-        }
-
-        console.log("All modules loaded successfully");
-      });
-    </script>
   </body>
 </html>
