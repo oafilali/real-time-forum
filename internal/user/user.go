@@ -1,8 +1,9 @@
 package user
 
 import (
+	"errors"
 	"forum/internal/database"
-	"forum/internal/util"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -60,7 +61,7 @@ func AuthenticateUser(identifier, password string) (int, error) {
 	
 	// Compare passwords
 	if bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password)) != nil {
-		return 0, util.ErrInvalidCredentials
+		return 0, errors.New("invalid credentials")
 	}
 	
 	return userID, nil
