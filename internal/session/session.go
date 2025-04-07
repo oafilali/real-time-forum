@@ -90,11 +90,11 @@ func GetUserIDFromSession(r *http.Request) (int, error) {
 	// Check if session is expired
 	if time.Now().After(expiresAt) {
 		log.Printf("Session expired for user ID: %d", userID)
-		DeleteSession(cookie.Value)
+		go DeleteSession(cookie.Value) // Use goroutine to avoid blocking
 		return 0, fmt.Errorf("session expired")
 	}
 
-	// Extend session on activity
+	// Extend session on activity - do this in a goroutine to not block the request
 	go extendSession(cookie.Value)
 	
 	return userID, nil

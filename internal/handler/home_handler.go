@@ -17,22 +17,27 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    sessionID, err := session.GetUserIDFromSession(r)
-    fmt.Println(sessionID)
-    if err != nil || sessionID == 0 {
-        log.Println("Unauthorized access attempt to view post")
-        util.ExecuteJSON(w, model.MsgData{"Unauthorized: Please log in to view posts"}, http.StatusUnauthorized)
-        return
-    }
+	// Get session once and reuse the result
+	sessionID, err := session.GetUserIDFromSession(r)
+	fmt.Println(sessionID)
+	if err != nil || sessionID == 0 {
+		log.Println("Unauthorized access attempt to view post")
+		util.ExecuteJSON(w, model.MsgData{"Unauthorized: Please log in to view posts"}, http.StatusUnauthorized)
+		return
+	}
 	
 	// Enhanced debugging with all headers that might be relevant
 	log.Printf("HomeHandler called with headers - Accept: %s, X-Requested-With: %s, Query params: %v",
 		r.Header.Get("Accept"), r.Header.Get("X-Requested-With"), r.URL.Query())
 	
-	userID, _ := session.GetUserIDFromSession(r)
+	// Use the sessionID we already retrieved instead of calling the function again
 	var username string
-	if userID > 0 {
-		_ = database.Db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+	if sessionID > 0 {
+		err = database.Db.QueryRow("SELECT username FROM users WHERE id = ?", sessionID).Scan(&username)
+		if err != nil {
+			log.Printf("Error fetching username: %v", err)
+			// Continue without username if there's an error
+		}
 	}
 
 	allPosts, err := post.FetchPosts()
@@ -56,7 +61,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := model.Data{
 		Posts:     allPosts,
-		SessionID: userID,
+		SessionID: sessionID,
 		Username:  username,
 	}
 
