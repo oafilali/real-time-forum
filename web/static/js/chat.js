@@ -22,27 +22,48 @@ function debug(message, data) {
 
 // Fetch all registered users
 async function fetchAllUsers() {
-  try {
-    debug("Fetching users from /user/all");
-    const response = await fetch("/user/all", {
-      headers: { Accept: "application/json" },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      debug("Received user data:", data);
-      allUsers = data.users || [];
-      updateUsersList();
-      return true;
-    } else {
-      debug("Failed to fetch users, status:", response.status);
+    try {
+      debug("Fetching users from /user/all");
+      
+      // Check if user is logged in first
+      if (!window.state || !window.state.sessionID) {
+        debug("Not fetching users - user not logged in");
+        return false;
+      }
+      
+      const response = await fetch("/user/all", {
+        headers: { Accept: "application/json" },
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        debug("Received user data:", data);
+        allUsers = data.users || [];
+        updateUsersList();
+        return true;
+      } else {
+        debug("Failed to fetch users, status:", response.status);
+        // If the response is unauthorized, the session might have expired
+        if (response.status === 401) {
+          // Force a check of the login status
+          if (typeof checkLogin === "function") {
+            checkLogin();
+          }
+        }
+        return false;
+      }
+    } catch (error) {
+      debug("Error fetching users:", error);
+      
+      // Mark the users list with error state
+      const usersList = document.getElementById("users-list");
+      if (usersList) {
+        usersList.innerHTML = '<p class="empty-users-message">Error loading users</p>';
+      }
+      
       return false;
     }
-  } catch (error) {
-    debug("Error fetching users:", error);
-    return false;
   }
-}
 
 // Connect to WebSocket when user is logged in
 function connectWebSocket() {
@@ -830,33 +851,39 @@ function sendMessage() {
 function checkAndConnectWebSocket() {
   debug("Checking if WebSocket connection needed");
 
-  // Only attempt to connect if the user is logged in and we don't have an active connection
-  if (
-    window.state &&
-    window.state.sessionID > 0 &&
-    (!socket || socket.readyState !== WebSocket.OPEN) &&
-    reconnectAttempts < maxReconnectAttempts
-  ) {
-    debug("User logged in, connecting WebSocket");
-    connectWebSocket();
-  } else if (
-    !window.state ||
-    !window.state.sessionID ||
-    window.state.sessionID <= 0
-  ) {
-    // Reset connection if user is not logged in
+  // If user isn't logged in, stop checking and clean up
+  if (!window.state || !window.state.sessionID || window.state.sessionID <= 0) {
+    if (typeof stopWebSocketChecking === "function") {
+      stopWebSocketChecking();
+    }
+
+    // Reset connection
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.close();
+    }
     socket = null;
     reconnectAttempts = 0;
 
-    // Update status indicator if it exists
+    // Update status indicator
     const statusElement = document.getElementById("chat-status");
     if (statusElement) {
       statusElement.textContent = "Not logged in";
       statusElement.className = "disconnected";
     }
+    return;
+  }
+
+  // Only attempt to connect if needed
+  if (
+    (!socket || socket.readyState !== WebSocket.OPEN) &&
+    reconnectAttempts < maxReconnectAttempts
+  ) {
+    debug("User logged in, connecting WebSocket");
+    connectWebSocket();
   }
 }
 
+// Initialize chat when DOM is loaded
 // Initialize chat when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
   debug("DOM loaded, checking session");
@@ -878,13 +905,66 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// Set up a regular check for WebSocket connection with a longer interval
-const wsCheckInterval = setInterval(checkAndConnectWebSocket, 10000); // 10 seconds instead of 2
+// Function to start WebSocket checking interval
+function startWebSocketChecking() {
+  // Clear any existing interval first
+  if (window.wsCheckInterval) {
+    clearInterval(window.wsCheckInterval);
+  }
+
+  // Only set interval if user is logged in
+  if (window.state && window.state.sessionID > 0) {
+    window.wsCheckInterval = setInterval(checkAndConnectWebSocket, 10000);
+    debug("WebSocket checking interval started");
+  }
+}
+
+// Function to stop WebSocket checking interval
+function stopWebSocketChecking() {
+  if (window.wsCheckInterval) {
+    clearInterval(window.wsCheckInterval);
+    window.wsCheckInterval = null;
+    debug("WebSocket checking interval stopped");
+  }
+
+  // Also close any existing connection
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.close();
+    socket = null;
+  }
+}
+
+// Add this function to chat.js
+function setupUserListRefresh() {
+  // Refresh user list every 30 seconds if user is logged in
+  if (window.userListRefreshInterval) {
+    clearInterval(window.userListRefreshInterval);
+  }
+
+  if (window.state && window.state.sessionID > 0) {
+    window.userListRefreshInterval = setInterval(() => {
+      if (typeof fetchAllUsers === "function") {
+        fetchAllUsers();
+      }
+    }, 30000); // Every 30 seconds
+  }
+}
+
+// Call this on login
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.state && window.state.sessionID > 0) {
+    setupUserListRefresh();
+  }
+});
+
+// Also call in the checkLogin function
+
+// Only start the interval if user is already logged in
+if (window.state && window.state.sessionID > 0) {
+  startWebSocketChecking();
+}
 
 // Add cleanup for when page unloads
 window.addEventListener("beforeunload", function () {
-  clearInterval(wsCheckInterval);
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.close();
-  }
+  stopWebSocketChecking();
 });
