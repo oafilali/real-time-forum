@@ -673,3 +673,9 @@ button[name="type"]:hover {
     z-index: 1000;
   }
 }
+
+.comment-box {
+  resize: none;
+  min-height: 100px;
+  max-width: 1200px; 
+}
