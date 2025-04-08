@@ -20,9 +20,9 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		title := r.FormValue("title")
-		content := r.FormValue("content")
-		categories := strings.Join(r.Form["categories"], ", ")
+		title := strings.TrimSpace(r.FormValue("title")) 
+        content := strings.TrimSpace(r.FormValue("content")) 
+        categories := strings.Join(r.Form["categories"], ", ")
 
 		if title == "" || content == "" {
 			util.ExecuteJSON(w, model.MsgData{"Post cannot be empty"}, http.StatusBadRequest)

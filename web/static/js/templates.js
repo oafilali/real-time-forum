@@ -213,7 +213,7 @@ const templates = {
         <h2>Create a New Post</h2>
         <form id="create-post-form">
           <label for="title">Title:</label>
-          <input type="text" id="title" name="title" required placeholder="Enter a descriptive title">
+          <input type="text" id="title" name="title" required minlength="5" maxlength="50">
           
           <label for="content">Content:</label>
           <textarea id="content" name="content" required placeholder="Write your post content here..."></textarea>
