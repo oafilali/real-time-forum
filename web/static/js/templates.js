@@ -116,8 +116,8 @@ const templates = {
       return `
           <div class="login-prompt">
             <p>You must be logged in to add a comment. 
-               <a href="/login" data-navigate>Login</a> or 
-               <a href="/register" data-navigate>Register</a>
+                <a href="/login" data-navigate>Login</a> or 
+                <a href="/register" data-navigate>Register</a>
             </p>
           </div>
         `;
@@ -290,7 +290,17 @@ const templates = {
 
   // Sidebar with categories
   sidebar: (sessionID) => {
-    let sidebarHTML = `
+    if (!sessionID) {
+      return `
+        <aside id="category-sidebar" style="display: none;">
+          <!-- Sidebar hidden for non-logged-in users -->
+        </aside>
+      `;
+    }
+
+    // If the user is logged in, display the sidebar with categories
+    return `
+      <aside id="category-sidebar">
         <h2>Categories:</h2>
         <p><a href="/filter?category=General" data-navigate>General</a></p>
         <p><a href="/filter?category=Local%20News%20%26%20Events" data-navigate>Local News & Events</a></p>
@@ -299,25 +309,16 @@ const templates = {
         <p><a href="/filter?category=Sailing" data-navigate>Sailing</a></p>
         <p><a href="/filter?category=Cuisine%20%26%20food" data-navigate>Cuisine & food</a></p>
         <p><a href="/filter?category=Politics" data-navigate>Politics</a></p>
-      `;
 
-    // Add user-specific filters if logged in
-    if (sessionID) {
-      sidebarHTML += `
-          <h2>Filters:</h2>
-          <p><a href="/filter?user_created=true" data-navigate>My Posts</a></p>
-          <p><a href="/filter?liked=true" data-navigate>Liked Posts</a></p>
-        `;
-    }
-
-    // Add home button
-    sidebarHTML += `
-        <div class="category-button">
-          <a href="/" data-navigate class="back-to-home">Back to Home</a>
-        </div>
-      `;
-
-    return sidebarHTML;
+        <h2>Filters:</h2>
+      <p><a href="/filter?user_created=true" data-navigate>My Posts</a></p>
+      <p><a href="/filter?liked=true" data-navigate>Liked Posts</a></p>
+      
+      <div class="category-button">
+        <a href="/" data-navigate class="back-to-home">Back to Home</a>
+      </div>
+    </aside>
+    `;
   },
 
   // Chat sidebar template
