@@ -82,6 +82,21 @@ function connect() {
           window.chatMessages.handleUserList(data.users);
         } else if (data.type === "message" && window.chatMessages) {
           window.chatMessages.handleMessage(data);
+        } else if (data.type === "typing") {
+          // Show typing indicator
+          const typingIndicator = document.getElementById("typing-indicator");
+          if (typingIndicator) {
+            typingIndicator.innerHTML = `${
+              data.username || "User"
+            } is typing<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>`;
+            typingIndicator.style.display = "block";
+          }
+        } else if (data.type === "typing_stopped") {
+          // Hide typing indicator
+          const typingIndicator = document.getElementById("typing-indicator");
+          if (typingIndicator) {
+            typingIndicator.style.display = "none";
+          }
         } else if (data.type === "history" && window.chatUI) {
           if (Array.isArray(data.messages)) {
             window.chatUI.displayMessageHistory(data.messages);

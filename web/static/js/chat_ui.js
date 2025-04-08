@@ -176,31 +176,92 @@ function openChat(userId, username) {
         window.location.href = "/";
       }
       currentChatUser = null;
+
+      // Send typing_stopped when leaving chat
+      const socket = window.chatConnection
+        ? window.chatConnection.socket()
+        : null;
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            type: "typing_stopped",
+            receiverID: userId,
+          })
+        );
+      }
     });
+
+  const socket = window.chatConnection ? window.chatConnection.socket() : null;
+  let typingTimer;
 
   // Set up message send button
   document
     .getElementById("send-message-button")
     .addEventListener("click", function () {
+      // Send typing_stopped when message is sent
+      clearTimeout(typingTimer);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            type: "typing_stopped",
+            receiverID: userId,
+          })
+        );
+      }
+
       if (window.chatMessages && window.chatMessages.sendMessage) {
         window.chatMessages.sendMessage();
       }
     });
 
+  // Set up typing indicator
+  const messageInput = document.getElementById("message-input");
+  messageInput.addEventListener("keydown", function () {
+    // Send typing status to other user
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({
+          type: "typing",
+          receiverID: userId,
+        })
+      );
+
+      // Stop typing indicator after inactivity
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        socket.send(
+          JSON.stringify({
+            type: "typing_stopped",
+            receiverID: userId,
+          })
+        );
+      }, 300);
+    }
+  });
+
   // Set up enter key to send message
-  document
-    .getElementById("message-input")
-    .addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        if (window.chatMessages && window.chatMessages.sendMessage) {
-          window.chatMessages.sendMessage();
-        }
+  messageInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+
+      // Send typing_stopped when message is sent
+      clearTimeout(typingTimer);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            type: "typing_stopped",
+            receiverID: userId,
+          })
+        );
       }
-    });
+
+      if (window.chatMessages && window.chatMessages.sendMessage) {
+        window.chatMessages.sendMessage();
+      }
+    }
+  });
 
   // Request message history
-  const socket = window.chatConnection ? window.chatConnection.socket() : null;
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(
       JSON.stringify({
@@ -212,11 +273,11 @@ function openChat(userId, username) {
     const messagesContainer = document.getElementById("messages-container");
     if (messagesContainer) {
       messagesContainer.innerHTML = `
-                <div class="chat-empty-state">
-                    <h3>Chat connection error</h3>
-                    <p>Not connected to chat server. Please refresh the page and try again.</p>
-                </div>
-            `;
+                  <div class="chat-empty-state">
+                      <h3>Chat connection error</h3>
+                      <p>Not connected to chat server. Please refresh the page and try again.</p>
+                  </div>
+              `;
     }
   }
 
@@ -227,7 +288,6 @@ function openChat(userId, username) {
 
   // Focus the message input
   setTimeout(() => {
-    const messageInput = document.getElementById("message-input");
     if (messageInput) messageInput.focus();
   }, 100);
 }

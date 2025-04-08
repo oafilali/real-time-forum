@@ -81,6 +81,25 @@ func (c *Client) readPump() {
 		switch message.Type {
 		case "message":
 			handleChatMessage(c, message)
+		case "typing":
+			// Simply forward typing notification with username
+			respMsg := Message{
+				Type:       "typing",
+				SenderID:   c.UserID,
+				ReceiverID: message.ReceiverID,
+				Username:   c.Username,
+			}
+			respData, _ := json.Marshal(respMsg)
+			c.Hub.SendToUser(message.ReceiverID, respData)
+		case "typing_stopped":
+			// Forward typing stopped notification
+			respMsg := Message{
+				Type:       "typing_stopped",
+				SenderID:   c.UserID,
+				ReceiverID: message.ReceiverID,
+			}
+			respData, _ := json.Marshal(respMsg)
+			c.Hub.SendToUser(message.ReceiverID, respData)
 		case "get_history":
 			handleHistoryRequest(c, message)
 		case "get_more_history":

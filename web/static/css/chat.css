@@ -428,3 +428,41 @@
   color: #999;
   text-align: right;
 }
+
+/* Typing indicator styles */
+.typing-indicator {
+  padding: 8px 15px;
+  background-color: #f1f1f1;
+  border-radius: 15px;
+  margin: 10px 20px;
+  display: none;
+  font-size: 14px;
+  color: #555;
+}
+
+/* Animated dots */
+.typing-dots span {
+  display: inline-block;
+  animation: pulse 1.4s infinite;
+  margin-left: 2px;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

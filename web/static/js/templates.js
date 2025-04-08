@@ -240,23 +240,25 @@ const templates = {
   // Chat interface template
   chatInterface: (username) => `
     <div class="chat-interface">
-      <div class="chat-title">
-        <h2>Chat with ${username}</h2>
-        <button id="back-to-posts" class="back-button">Back to Posts</button>
-      </div>
-      
-      <div id="messages-container" class="messages-container">
-        <div class="chat-empty-state">
-          <h3>Start a conversation</h3>
-          <p>No messages yet. Send a message to start the conversation.</p>
-        </div>
-      </div>
-      
-      <div class="chat-footer">
-        <textarea id="message-input" placeholder="Type a message..." rows="2"></textarea>
-        <button id="send-message-button">Send</button>
+    <div class="chat-title">
+      <h2>Chat with ${username}</h2>
+      <button id="back-to-posts" class="back-button">Back to Posts</button>
+    </div>
+    
+    <div id="messages-container" class="messages-container">
+      <div class="chat-empty-state">
+        <h3>Start a conversation</h3>
+        <p>No messages yet. Send a message to start the conversation.</p>
       </div>
     </div>
+    
+    <div id="typing-indicator" class="typing-indicator"></div>
+    
+    <div class="chat-footer">
+      <textarea id="message-input" placeholder="Type a message..." rows="2"></textarea>
+      <button id="send-message-button">Send</button>
+    </div>
+  </div>
   `,
 
   // Helper templates
