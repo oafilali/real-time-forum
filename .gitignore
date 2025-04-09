@@ -1,1 +1,8 @@
 .DS_Store
+
+# Ignore SQLite database files
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+
