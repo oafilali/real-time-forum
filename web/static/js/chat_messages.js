@@ -8,7 +8,7 @@ const lastMessagesData = {}; // Store last messages data by user ID
 // Handle user list updates from the server
 function handleUserList(users) {
   onlineUsers.length = 0;
-
+  
   if (Array.isArray(users)) {
     users.forEach((user) => {
       onlineUsers.push(user.id);

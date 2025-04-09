@@ -122,6 +122,7 @@ function setupNavigationEvents() {
     const link = event.target.closest("[data-navigate]");
     if (link) {
       event.preventDefault();
+      currentChatUser = null;
       navigate(link.getAttribute("href"));
     }
   });

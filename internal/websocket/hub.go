@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
+	"fmt"
 )
 
 // Hub maintains all active client connections
@@ -96,12 +97,8 @@ func (h *Hub) broadcastUserList() {
 // broadcastMessage sends a message to all connected clients
 func (h *Hub) broadcastMessage(message []byte) {
     for _, client := range h.Clients {
-        select {
-        case client.Send <- message:
-            // Message sent successfully
-        default:
-            // Skip client if their channel is full
-        }
+		client.Send <- message
+		fmt.Println(string(message))
     }
 }
 

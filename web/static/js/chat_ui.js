@@ -86,7 +86,7 @@ function updateUsersList() {
 
   // Sort users:
   // 1. Users with unread messages first
-  // 2. Online users next
+  // 2.Onl ine users next
   // 3. Users with recent messages next (sorted by timestamp)
   // 4. Then alphabetically
   const sortedUsers = [...allUsers].sort((a, b) => {
