@@ -664,10 +664,6 @@ button[name="type"]:hover {
 .comment-box {
   resize: none;
   min-height: 100px;
-<<<<<<< HEAD
   width: 100%;
   max-width: 100%;
-=======
-  max-width: 1200px; 
->>>>>>> ceb1fec (adjusted comments box)
 }
