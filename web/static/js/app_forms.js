@@ -134,7 +134,7 @@ async function submitPost(event) {
       const textArea = event.target.querySelector("textarea");
       if (textArea) {
         textArea.value = "";
-        textArea.placeholder = "No empty messages allowed!";
+        textArea.placeholder = "No empty posts allowed!";
       }
       //alert(data.message || "Failed to create post");
     }
