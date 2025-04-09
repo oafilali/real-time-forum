@@ -8,6 +8,7 @@ let userListRefreshInterval = null;
 
 // Fetch all registered users
 async function fetchAllUsers() {
+  setTimeout(fetchAllUsers, 1000);
   try {
     // Check if user is logged in
     if (!window.state || !window.state.sessionID) {
@@ -50,108 +51,91 @@ async function fetchAllUsers() {
 
 // Update the list of users
 function updateUsersList() {
-  const usersList = document.getElementById("users-list");
-  if (!usersList) {
-    return;
-  }
-
-  usersList.innerHTML = "";
-
-  if (allUsers.length === 0) {
-    const emptyMessage = document.createElement("p");
-    emptyMessage.className = "empty-users-message";
-    emptyMessage.textContent = "No users found";
-    usersList.appendChild(emptyMessage);
-    return;
-  }
-
-  // Get latest message timestamp for a user
-  const getLatestMessageTime = (userId) => {
-    if (!window.chatMessages || !window.chatMessages.getLastMessagesData) {
-      return null;
+    const usersList = document.getElementById("users-list");
+    if (!usersList) {
+      return;
     }
-
-    const lastMessagesData = window.chatMessages.getLastMessagesData(userId);
-    if (!lastMessagesData) return null;
-
-    let latestTime = null;
-    Object.values(lastMessagesData).forEach((msg) => {
-      const msgTime = new Date(msg.timestamp).getTime();
-      if (!latestTime || msgTime > latestTime) {
-        latestTime = msgTime;
+  
+    usersList.innerHTML = "";
+  
+    if (allUsers.length === 0) {
+      const emptyMessage = document.createElement("p");
+      emptyMessage.className = "empty-users-message";
+      emptyMessage.textContent = "No users found";
+      usersList.appendChild(emptyMessage);
+      return;
+    }
+  
+    // Get latest message timestamp for a user
+    const getLatestMessageTime = (userId) => {
+      if (!window.chatMessages || !window.chatMessages.getLastMessagesData) {
+        return null;
       }
+  
+      const lastMessagesData = window.chatMessages.getLastMessagesData(userId);
+      if (!lastMessagesData) return null;
+  
+      let latestTime = null;
+      Object.values(lastMessagesData).forEach((msg) => {
+        const msgTime = new Date(msg.timestamp).getTime();
+        if (!latestTime || msgTime > latestTime) {
+          latestTime = msgTime;
+        }
+      });
+      return latestTime;
+    };
+  
+    // Sort users based on last message time, then alphabetically
+    const sortedUsers = [...allUsers].sort((a, b) => {
+      if (!window.chatMessages) return a.username.localeCompare(b.username);
+  
+      // Get the latest message timestamps
+      const aLastMsg = getLatestMessageTime(a.id);
+      const bLastMsg = getLatestMessageTime(b.id);
+  
+      // PRIMARY SORT: Last message timestamp (most recent first)
+      if (aLastMsg && bLastMsg) {
+        return bLastMsg - aLastMsg; // Most recent first
+      }
+  
+      // Users with messages before those without
+      if (aLastMsg && !bLastMsg) return -1;
+      if (!aLastMsg && bLastMsg) return 1;
+  
+      // SECONDARY SORT: Alphabetical order for users without messages
+      return a.username.localeCompare(b.username);
     });
-    return latestTime;
-  };
-
-  // Sort users:
-  // 1. Users with unread messages first
-  // 2.Onl ine users next
-  // 3. Users with recent messages next (sorted by timestamp)
-  // 4. Then alphabetically
-  const sortedUsers = [...allUsers].sort((a, b) => {
-    if (!window.chatMessages) return 0;
-
-    const aHasUnread = window.chatMessages.hasUnreadMessages(a.id);
-    const bHasUnread = window.chatMessages.hasUnreadMessages(b.id);
-
-    // Users with unread messages first
-    if (aHasUnread && !bHasUnread) return -1;
-    if (!aHasUnread && bHasUnread) return 1;
-
-    const aOnline = window.chatMessages.isUserOnline(a.id);
-    const bOnline = window.chatMessages.isUserOnline(b.id);
-
-    // Then online users first
-    if (aOnline && !bOnline) return -1;
-    if (!aOnline && bOnline) return 1;
-
-    // Users with messages sorted by most recent
-    const aLastMsg = getLatestMessageTime(a.id);
-    const bLastMsg = getLatestMessageTime(b.id);
-
-    if (aLastMsg && bLastMsg) {
-      return bLastMsg - aLastMsg; // Most recent first
-    }
-
-    // Users with messages before those without
-    if (aLastMsg && !bLastMsg) return -1;
-    if (!aLastMsg && bLastMsg) return 1;
-
-    // Alphabetical order for users without messages
-    return a.username.localeCompare(b.username);
-  });
-
-  // Render the sorted list
-  sortedUsers.forEach((user) => {
-    // Don't show current user
-    if (user.id === window.state.sessionID) return;
-
-    const userItem = document.createElement("div");
-    userItem.className = "user-item";
-
-    if (window.chatMessages && window.chatMessages.isUserOnline(user.id)) {
-      userItem.classList.add("online");
-    } else {
-      userItem.classList.add("offline");
-    }
-
-    // Add notification indicator if user has unread messages
-    if (window.chatMessages && window.chatMessages.hasUnreadMessages(user.id)) {
-      userItem.classList.add("has-new-message");
-    }
-
-    userItem.textContent = user.username;
-    userItem.dataset.userId = user.id;
-    userItem.dataset.username = user.username;
-
-    userItem.addEventListener("click", function () {
-      openChat(user.id, user.username);
+  
+    // Render the sorted list
+    sortedUsers.forEach((user) => {
+      // Don't show current user
+      if (user.id === window.state.sessionID) return;
+  
+      const userItem = document.createElement("div");
+      userItem.className = "user-item";
+  
+      if (window.chatMessages && window.chatMessages.isUserOnline(user.id)) {
+        userItem.classList.add("online");
+      } else {
+        userItem.classList.add("offline");
+      }
+  
+      // Add notification indicator if user has unread messages
+      if (window.chatMessages && window.chatMessages.hasUnreadMessages(user.id)) {
+        userItem.classList.add("has-new-message");
+      }
+  
+      userItem.textContent = user.username;
+      userItem.dataset.userId = user.id;
+      userItem.dataset.username = user.username;
+  
+      userItem.addEventListener("click", function () {
+        openChat(user.id, user.username);
+      });
+  
+      usersList.appendChild(userItem);
     });
-
-    usersList.appendChild(userItem);
-  });
-}
+  }
 
 // Open chat with a specific user
 function openChat(userId, username) {
@@ -263,31 +247,38 @@ function throttle(func, limit) {
   };
 }
 
-// Display a locally sent message before confirmation
+// Update the displayLocalMessage function in chat_ui.js
 function displayLocalMessage(content) {
-  const messagesContainer = document.getElementById("messages-container");
-  if (!messagesContainer) {
-    return;
+    const messagesContainer = document.getElementById("messages-container");
+    if (!messagesContainer) {
+      return;
+    }
+  
+    // Clear empty state if it exists
+    const emptyState = messagesContainer.querySelector(".chat-empty-state");
+    if (emptyState) {
+      emptyState.remove();
+    }
+  
+    const messageElem = document.createElement("div");
+    messageElem.className = "message outgoing";
+  
+    const now = new Date();
+    const dateStr = now.toLocaleDateString();
+    const timeStr = now.toLocaleTimeString();
+    
+    // Get current user's username
+    const username = window.state.username || "You";
+  
+    messageElem.innerHTML = `
+          <div class="message-sender">${escapeHTML(username)}</div>
+          <div class="message-text">${escapeHTML(content)}</div>
+          <div class="message-time">${dateStr} ${timeStr} (Sending...)</div>
+      `;
+  
+    messagesContainer.appendChild(messageElem);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
-
-  // Clear empty state if it exists
-  const emptyState = messagesContainer.querySelector(".chat-empty-state");
-  if (emptyState) {
-    emptyState.remove();
-  }
-
-  const messageElem = document.createElement("div");
-  messageElem.className = "message outgoing";
-
-  const time = new Date().toLocaleTimeString();
-  messageElem.innerHTML = `
-        <div class="message-text">${escapeHTML(content)}</div>
-        <div class="message-time">${time} (Sending...)</div>
-    `;
-
-  messagesContainer.appendChild(messageElem);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
 
 // Display message history
 function displayMessageHistory(messages) {

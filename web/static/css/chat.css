@@ -399,3 +399,32 @@
     padding-bottom: 80px;
   }
 }
+
+/* Add these styles to chat.css */
+
+/* Message sender styling */
+.message-sender {
+  font-weight: bold;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+.message.outgoing .message-sender {
+  color: #0077b6;
+}
+
+.message.incoming .message-sender {
+  color: #333;
+}
+
+/* Update message spacing */
+.message-text {
+  margin-bottom: 6px;
+  word-wrap: break-word;
+}
+
+.message-time {
+  font-size: 0.75rem;
+  color: #999;
+  text-align: right;
+}

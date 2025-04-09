@@ -45,131 +45,141 @@ function handleMessage(message) {
   }
 }
 
-// Display a received message
+// Update the displayMessage function in chat_messages.js
 function displayMessage(message) {
-  let currentChatUser = null;
-  if (window.chatUI && window.chatUI.currentUser) {
-    currentChatUser = window.chatUI.currentUser();
-  }
-
-  // Only display if it's part of the current chat
-  if (
-    currentChatUser &&
-    ((message.sender_id === currentChatUser.id &&
-      message.receiverID === window.state.sessionID) ||
-      (message.sender_id === window.state.sessionID &&
-        message.receiverID === currentChatUser.id))
-  ) {
-    const messagesContainer = document.getElementById("messages-container");
-    if (!messagesContainer) {
-      return;
+    let currentChatUser = null;
+    if (window.chatUI && window.chatUI.currentUser) {
+      currentChatUser = window.chatUI.currentUser();
     }
-
-    // Clear empty state if it exists
-    const emptyState = messagesContainer.querySelector(".chat-empty-state");
-    if (emptyState) {
-      emptyState.remove();
-    }
-
-    // Find existing "sending..." message if this is a confirmation of our sent message
-    if (message.sender_id === window.state.sessionID) {
-      const pendingMessages =
-        messagesContainer.querySelectorAll(".message.outgoing");
-      for (const pending of pendingMessages) {
-        const timeElem = pending.querySelector(".message-time");
-        if (timeElem && timeElem.textContent.includes("Sending...")) {
-          // Update this message instead of creating a new one
-          timeElem.textContent = new Date(
-            message.timestamp
-          ).toLocaleTimeString();
-          // Add timestamp as data attribute
-          timeElem.setAttribute("data-timestamp", message.timestamp);
-
-          // If we have new message data, update the sorting of users
-          if (!lastMessagesData[message.receiverID]) {
-            lastMessagesData[message.receiverID] = {};
+  
+    // Only display if it's part of the current chat
+    if (
+      currentChatUser &&
+      ((message.sender_id === currentChatUser.id &&
+        message.receiverID === window.state.sessionID) ||
+        (message.sender_id === window.state.sessionID &&
+          message.receiverID === currentChatUser.id))
+    ) {
+      const messagesContainer = document.getElementById("messages-container");
+      if (!messagesContainer) {
+        return;
+      }
+  
+      // Clear empty state if it exists
+      const emptyState = messagesContainer.querySelector(".chat-empty-state");
+      if (emptyState) {
+        emptyState.remove();
+      }
+  
+      // Find existing "sending..." message if this is a confirmation of our sent message
+      if (message.sender_id === window.state.sessionID) {
+        const pendingMessages =
+          messagesContainer.querySelectorAll(".message.outgoing");
+        for (const pending of pendingMessages) {
+          const timeElem = pending.querySelector(".message-time");
+          if (timeElem && timeElem.textContent.includes("Sending...")) {
+            // Update this message instead of creating a new one
+            const messageDate = new Date(message.timestamp);
+            const dateStr = messageDate.toLocaleDateString();
+            const timeStr = messageDate.toLocaleTimeString();
+            timeElem.textContent = `${dateStr} ${timeStr}`;
+            // Add timestamp as data attribute
+            timeElem.setAttribute("data-timestamp", message.timestamp);
+  
+            // If we have new message data, update the sorting of users
+            if (!lastMessagesData[message.receiverID]) {
+              lastMessagesData[message.receiverID] = {};
+            }
+            lastMessagesData[message.receiverID][message.id || Date.now()] = {
+              timestamp: message.timestamp,
+              content: message.content,
+              sender_id: message.sender_id,
+            };
+  
+            if (window.chatUI && window.chatUI.updateUsersList) {
+              window.chatUI.updateUsersList();
+            }
+  
+            return;
           }
-          lastMessagesData[message.receiverID][message.id || Date.now()] = {
-            timestamp: message.timestamp,
-            content: message.content,
-            sender_id: message.sender_id,
-          };
-
-          if (window.chatUI && window.chatUI.updateUsersList) {
-            window.chatUI.updateUsersList();
-          }
-
-          return;
         }
       }
-    }
-
-    // Create new message element
-    const messageElem = document.createElement("div");
-    messageElem.className = "message";
-
-    if (message.sender_id === window.state.sessionID) {
-      messageElem.classList.add("outgoing");
-    } else {
-      messageElem.classList.add("incoming");
-    }
-
-    const time = new Date(message.timestamp).toLocaleTimeString();
-    const escapeHTML =
-      window.chatUI && window.chatUI.escapeHTML
-        ? window.chatUI.escapeHTML
-        : (text) =>
-            text
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;");
-
-    messageElem.innerHTML = `
-            <div class="message-text">${escapeHTML(message.content)}</div>
-            <div class="message-time" data-timestamp="${
-              message.timestamp
-            }">${time}</div>
-        `;
-
-    messagesContainer.appendChild(messageElem);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    // Update last messages data for sorting
-    const otherUser =
-      message.sender_id === window.state.sessionID
-        ? message.receiverID
-        : message.sender_id;
-    if (!lastMessagesData[otherUser]) {
-      lastMessagesData[otherUser] = {};
-    }
-    lastMessagesData[otherUser][message.id || Date.now()] = {
-      timestamp: message.timestamp,
-      content: message.content,
-      sender_id: message.sender_id,
-    };
-
-    if (window.chatUI && window.chatUI.updateUsersList) {
-      window.chatUI.updateUsersList();
-    }
-  } else {
-    // Still update the last messages data for user sorting
-    if (message.sender_id !== window.state.sessionID) {
-      const senderID = message.sender_id;
-      if (!lastMessagesData[senderID]) {
-        lastMessagesData[senderID] = {};
+  
+      // Create new message element
+      const messageElem = document.createElement("div");
+      messageElem.className = "message";
+  
+      // Get sender name
+      let senderName = window.state.username;
+      if (message.sender_id !== window.state.sessionID) {
+        senderName = message.username || currentChatUser.name;
       }
-      lastMessagesData[senderID][message.id || Date.now()] = {
+  
+      if (message.sender_id === window.state.sessionID) {
+        messageElem.classList.add("outgoing");
+      } else {
+        messageElem.classList.add("incoming");
+      }
+  
+      const messageDate = new Date(message.timestamp);
+      const dateStr = messageDate.toLocaleDateString();
+      const timeStr = messageDate.toLocaleTimeString();
+      const escapeHTML =
+        window.chatUI && window.chatUI.escapeHTML
+          ? window.chatUI.escapeHTML
+          : (text) =>
+              text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+  
+      messageElem.innerHTML = `
+              <div class="message-sender">${escapeHTML(senderName)}</div>
+              <div class="message-text">${escapeHTML(message.content)}</div>
+              <div class="message-time" data-timestamp="${
+                message.timestamp
+              }">${dateStr} ${timeStr}</div>
+          `;
+  
+      messagesContainer.appendChild(messageElem);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  
+      // Update last messages data for sorting
+      const otherUser =
+        message.sender_id === window.state.sessionID
+          ? message.receiverID
+          : message.sender_id;
+      if (!lastMessagesData[otherUser]) {
+        lastMessagesData[otherUser] = {};
+      }
+      lastMessagesData[otherUser][message.id || Date.now()] = {
         timestamp: message.timestamp,
         content: message.content,
         sender_id: message.sender_id,
       };
-
+  
       if (window.chatUI && window.chatUI.updateUsersList) {
         window.chatUI.updateUsersList();
       }
+    } else {
+      // Still update the last messages data for user sorting
+      if (message.sender_id !== window.state.sessionID) {
+        const senderID = message.sender_id;
+        if (!lastMessagesData[senderID]) {
+          lastMessagesData[senderID] = {};
+        }
+        lastMessagesData[senderID][message.id || Date.now()] = {
+          timestamp: message.timestamp,
+          content: message.content,
+          sender_id: message.sender_id,
+        };
+  
+        if (window.chatUI && window.chatUI.updateUsersList) {
+          window.chatUI.updateUsersList();
+        }
+      }
     }
   }
-}
 
 // Show notification for new message
 function showMessageNotification(message) {
