@@ -21,7 +21,7 @@ func InitDB() {
 func connectDB() {
 	var err error
 	// Add WAL journal mode and busy_timeout to prevent most locking issues
-	Db, err = sql.Open("sqlite3", "data/forum.db")
+	Db, err = sql.Open("sqlite3", "data/forum.db?_journal=WAL&_busy_timeout=5000")
 	ErrorCheck("Database connection failed: ", err)
 }
 

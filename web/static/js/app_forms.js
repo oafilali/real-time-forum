@@ -131,7 +131,12 @@ async function submitPost(event) {
         }
       }, 300);
     } else {
-      alert(data.message || "Failed to create post");
+      const textArea = event.target.querySelector("textarea");
+      if (textArea) {
+        textArea.value = "";
+        textArea.placeholder = "No empty messages allowed!";
+      }
+      //alert(data.message || "Failed to create post");
     }
   } catch (error) {
     console.error("Create post error:", error);
@@ -151,6 +156,8 @@ async function submitComment(event) {
       body: formData,
     });
 
+    const data = await response.json();
+
     if (response.ok) {
       // Comment added successfully, reload post
       if (window.appPages && window.appPages.loadPostPage) {
@@ -161,8 +168,18 @@ async function submitComment(event) {
         window.location.reload();
       }
     } else {
-      const data = await response.json();
-      alert(data.message || "Failed to add comment");
+      console.log(
+        "response not ok in submitComment, event target",
+        event.target
+      );
+
+      const textArea = event.target.querySelector("textarea");
+      if (textArea) {
+        textArea.value = "";
+        textArea.placeholder = "No empty messages allowed!";
+      }
+
+      //alert(data.message || "Failed to add comment");
     }
   } catch (error) {
     console.error("Comment error:", error);

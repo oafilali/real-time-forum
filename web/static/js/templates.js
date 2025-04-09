@@ -108,7 +108,7 @@ const templates = {
           <form id="comment-form">
             <h4>Add a Comment</h4>
             <input type="hidden" name="post_id" value="${postId}">
-            <textarea name="content" class="comment-box" placeholder="Write your comment here..." required></textarea>
+            <textarea name="content" class="comment-box" placeholder="Write your comment here..." required minlength="1" maxlength="500"></textarea>
             <button type="submit">Submit Comment</button>
           </form>
         `;

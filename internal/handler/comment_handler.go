@@ -7,6 +7,7 @@ import (
 	"forum/internal/util"
 	"log"
 	"net/http"
+	"strings"
 )
 
 // CommentHandler handles adding a comment to a post
@@ -29,7 +30,7 @@ func CommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content := r.FormValue("content")
+	content := strings.TrimSpace(r.FormValue("content"))
 	if content == "" {
 		util.ExecuteJSON(w, model.MsgData{"Content is missing"}, http.StatusBadRequest)
 		return

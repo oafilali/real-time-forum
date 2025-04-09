@@ -474,19 +474,6 @@ button[name="type"]:hover {
   border-radius: 8px;
 }
 
-.comment-box {
-  width: 100%;
-  min-width: 300px;
-  max-width: 100%; /* Changed from fixed width */
-  height: 120px; /* Taller comment box */
-  padding: 15px;
-  border-radius: 5px;
-  border: 1px solid #ddd;
-  margin-bottom: 15px;
-  font-family: inherit;
-  font-size: 1rem;
-}
-
 /* Loading indicator */
 .loading {
   text-align: center;
@@ -677,5 +664,6 @@ button[name="type"]:hover {
 .comment-box {
   resize: none;
   min-height: 100px;
-  max-width: 1200px; 
+  width: 100%;
+  max-width: 100%;
 }
